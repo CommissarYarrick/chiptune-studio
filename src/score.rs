@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, HashSet};
+#[cfg(feature = "native")]
 use std::path::Path;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -40,6 +41,7 @@ pub fn default_bank() -> Value {
     })
 }
 
+#[cfg(feature = "native")]
 pub fn load(path: &Path) -> Result<Value> {
     let bytes = std::fs::read(path).with_context(|| format!("reading score {}", path.display()))?;
     let text = bytes.strip_prefix(&[0xef, 0xbb, 0xbf]).unwrap_or(&bytes);

@@ -9,16 +9,20 @@ repository = "https://github.com/CommissarYarrick/chiptune-studio"
 [lib]
 name = "chiptune_studio"
 path = "src/lib.rs"
+crate-type = ["rlib", "cdylib"]
 
 [[bin]]
 name = "chip"
 path = "src/main.rs"
+required-features = ["native"]
+
+[features]
+default = ["native"]
+native = []
 
 [dependencies]
 anyhow = "1"
 base64 = "0.22"
-clap = { version = "4", features = ["derive"] }
-fs2 = "0.4"
 form_urlencoded = "1"
 hex = "0.4"
 hound = "3.5"
@@ -26,6 +30,10 @@ rustfft = "6"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+clap = { version = "4", features = ["derive"] }
+fs2 = "0.4"
 tiny_http = "0.12"
 uuid = { version = "1", features = ["v4"] }
 vorbis_rs = { version = "0.5", default-features = false }

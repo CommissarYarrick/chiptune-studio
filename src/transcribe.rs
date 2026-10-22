@@ -1,7 +1,10 @@
-use crate::{engine, score};
+#[cfg(feature = "native")]
+use crate::engine;
+use crate::score;
 use anyhow::{Result, anyhow};
 use rustfft::{FftPlanner, num_complex::Complex};
 use serde_json::{Value, json};
+#[cfg(feature = "native")]
 use std::{fs, path::Path};
 
 fn number(v: f64, lo: f64, hi: f64, name: &str) -> Result<f64> {
@@ -23,9 +26,15 @@ fn median(v: &mut [f64]) -> f64 {
         (v[n / 2 - 1] + v[n / 2]) * 0.5
     }
 }
+#[cfg(feature = "native")]
 fn read_audio(path: &Path) -> Result<(Vec<f32>, Value)> {
-    let mut reader = hound::WavReader::open(path)
-        .map_err(|_| anyhow!("Use a PCM WAV recording (the studio records this format)"))?;
+    decode_wav(&fs::read(path)?)
+}
+
+/// Decode and normalize a PCM WAV entirely in memory, for native and browser use.
+pub fn decode_wav(bytes: &[u8]) -> Result<(Vec<f32>, Value)> {
+    let mut reader = hound::WavReader::new(std::io::Cursor::new(bytes))
+        .map_err(|_| anyhow!("Use a PCM WAV recording"))?;
     let spec = reader.spec();
     let count = reader.duration() as usize;
     let rate = spec.sample_rate;
@@ -611,6 +620,36 @@ pub fn accompany(input: &Value) -> Result<(Value, Value)> {
     Ok((result, report))
 }
 
+/// Build an editable melodic score from a pitch analysis without filesystem access.
+pub fn melody_score(transcription: &Value, bpm: f64, profile: &str, title: &str) -> Result<Value> {
+    number(bpm, 30., 300., "bpm")?;
+    if !matches!(profile, "chip4" | "console8") {
+        return Err(anyhow!("Unknown profile"));
+    }
+    let notes = transcription["notes"].as_array().unwrap();
+    let end = notes
+        .iter()
+        .map(|n| n["at"].as_f64().unwrap_or(0.0) + n["duration"].as_f64().unwrap_or(0.0))
+        .fold(0.0, f64::max);
+    let length = 4.0f64.max((end / 4.0).ceil() * 4.0);
+    let mut data = json!({"version":1,"title":title,"profile":profile,"bpm":bpm,"meter":[4,4],"length":length,"seed":731,"master_gain_db":-3,"instruments":score::default_bank(),"patterns":{"melody":{"length":length,"notes":notes}},"tracks":[{"id":"lead","slot":"pulse1","instrument":"lead","gain_db":-7,"pan":0,"clips":[{"id":"hum","pattern":"melody","at":0}]}],"sections":[{"id":"hummed_phrase","at":0,"length":length}]});
+    if profile == "console8" {
+        let mut lead = data["instruments"]["warm"].clone();
+        lead["adsr"] = json!([0.004, 0.14, 0.55, 0.08]);
+        data["instruments"]["lead"] = lead;
+    }
+    // Imported articulation should come from the take, not the demo preset's
+    // synthetic vibrato, long release, and plucked decay.
+    data["instruments"]["lead"]
+        .as_object_mut()
+        .unwrap()
+        .remove("vibrato");
+    data["instruments"]["lead"]["adsr"] = json!([0.004, 0.025, 0.9, 0.012]);
+    score::validate(&data)?;
+    Ok(data)
+}
+
+#[cfg(feature = "native")]
 pub fn import_take(
     audio_path: &Path,
     out: &Path,
@@ -633,25 +672,7 @@ pub fn import_take(
     };
     let (samples, audio_info) = read_audio(&audio_path)?;
     let transcription = detect(&samples, bpm, quantize)?;
-    let notes = transcription["notes"].as_array().unwrap();
-    let end = notes
-        .iter()
-        .map(|n| n["at"].as_f64().unwrap_or(0.0) + n["duration"].as_f64().unwrap_or(0.0))
-        .fold(0.0, f64::max);
-    let length = 4.0f64.max((end / 4.0).ceil() * 4.0);
-    let mut data = json!({"version":1,"title":title,"profile":profile,"bpm":bpm,"meter":[4,4],"length":length,"seed":731,"master_gain_db":-3,"instruments":score::default_bank(),"patterns":{"melody":{"length":length,"notes":notes}},"tracks":[{"id":"lead","slot":"pulse1","instrument":"lead","gain_db":-7,"pan":0,"clips":[{"id":"hum","pattern":"melody","at":0}]}],"sections":[{"id":"hummed_phrase","at":0,"length":length}]});
-    if profile == "console8" {
-        let mut lead = data["instruments"]["warm"].clone();
-        lead["adsr"] = json!([0.004, 0.14, 0.55, 0.08]);
-        data["instruments"]["lead"] = lead;
-    }
-    // Imported articulation should come from the take, not the demo preset's
-    // synthetic vibrato, long release, and plucked decay.
-    data["instruments"]["lead"]
-        .as_object_mut()
-        .unwrap()
-        .remove("vibrato");
-    data["instruments"]["lead"]["adsr"] = json!([0.004, 0.025, 0.9, 0.012]);
+    let mut data = melody_score(&transcription, bpm, profile, title)?;
     let harmony = if arrange {
         let (d, h) = accompany(&data)?;
         data = d;

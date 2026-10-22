@@ -13,6 +13,22 @@ The application runs locally on the CPU. The score compiler, synthesis, pitch de
 - **Exports:** game-ready **Ogg Vorbis**, stereo PCM16 WAV, separate WAV tracks, MIDI, score JSON, event timeline, and a hash manifest.
 - **Repeatable rendering:** deterministic noise, content-checked cache, atomic revisions, source-hash checks, and OS file locks.
 
+## Browser edition / GitHub Pages
+
+The `docs/` directory is a complete static WebAssembly edition. Transcription and synthesis use the same Rust code in a Web Worker. There is no backend, database, account, automatic save, localStorage, IndexedDB, service worker, or recording upload. Takes and compositions exist only in the current tab's memory. Closing or reloading the page discards the session: use **Download WAV** or **Download song** before leaving.
+
+The browser edition exports stereo WAV and score JSON. Native Ogg Vorbis, MIDI, and stem export remain available in the desktop CLI. Browser songs are limited to two minutes and individual takes to one minute to bound mobile memory. Microphone access requires HTTPS or localhost. Physical phone/browser audio behavior still needs device testing.
+
+Build locally, without GitHub CI:
+
+```sh
+rustup target add wasm32-unknown-unknown
+python tools/build_web.py
+python tools/preview_web.py
+```
+
+Preview at `http://127.0.0.1:8770/chiptune-studio/`. The build script writes only `docs/`; it does not publish anything. To publish after committing the generated directory, select **Settings → Pages → Deploy from a branch → main → /docs** in GitHub. All paths support the repository URL prefix. No workflow file is added to this repository.
+
 ## Build
 
 Use a current Rust toolchain and a C compiler. Windows requires the MSVC C++ build tools; Unix builds need a working C toolchain. The C compiler builds the permissively licensed Vorbis libraries linked into the executable; it is not required to run the finished application.
@@ -64,17 +80,17 @@ The other examples, `examples/chip4.json` and `examples/console8.json`, demonstr
 
 1. Click **Record** and allow microphone access.
 2. Hum or whistle one melodic line, then click the same button to **Stop**. You can also import a WAV.
-3. Click **Create music**. The studio recognizes the melody, adds accompaniment, renders the song, and starts playback. If the browser blocks autoplay, press Play.
+3. Click **Create music**. The studio recognizes the melody, renders your recording as chip instruments, and starts playback. If the browser blocks autoplay, press Play.
 4. Listen or download the Ogg file. Your original recording is preserved.
 
-No setup is required: the default uses CHIP 4, original timing, and accompaniment. Optional **Advanced settings** expose tempo, profile, grid timing, accompaniment, and layer position. **Edit notes** opens the note editor; **Compare with recording** contains the original take and the melody-only continuous-pitch preview.
+No setup is required: the default uses CHIP 4, original timing, and no automatic backing. Optional **Advanced settings** expose tempo, profile, grid timing, and layer position. **Edit notes** opens the note editor; **Compare with recording** contains the original take and the melody-only continuous-pitch preview.
 
-To add another theme, open the current song, enable **Add this recording to the current song**, record the next part, and click **Create music**. It becomes a separate track, preserving the existing song. User-recorded parts take priority over automatic backing voices. CHIP 4 has three melodic channels plus noise; CONSOLE 8 supports eight voices.
+To add another theme, open the current song, enable **Add this recording to the current song**, record the next part, and click **Create music**. It becomes a separate track, preserving the existing song. CHIP 4 has three melodic channels plus noise; CONSOLE 8 supports eight voices.
 
 Both modes depend on monophonic pitch detection: speech, breath noise, multiple simultaneous voices, and octave ambiguity can still need correction. Keep the original-recording player available for comparison. These are local operations; recordings are not uploaded to a service.
 
 
-The original take is preserved. Local YIN pitch detection recognizes a **single melodic line**, not chords or full recordings. Recorded takes are limited to 60 seconds. An optional deterministic accompaniment provides a starting point, with the original melody unchanged. Review uncertain notes against the original take.
+The original take is preserved. Local YIN pitch detection recognizes a **single melodic line**, not chords or full recordings. Recorded takes are limited to 60 seconds. Add musical parts by recording additional takes as separate tracks. Review uncertain notes against the original take.
 
 ## CLI and score format
 

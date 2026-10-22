@@ -28,7 +28,6 @@ function busy(value, message) {
     $("#addNoteButton").disabled = !Object.keys(state.score?.score?.patterns || {}).length;
     syncPatternTools();
   }
-  $("#arrangeInput").disabled = value;
   $("#layerInput").disabled = value || !state.path;
   $("#layerAtBar").disabled = value || !state.path || !$("#layerInput").checked;
   $("#wavFile").disabled = value || state.recording;
@@ -41,6 +40,7 @@ function showError(message, error) {
   setStatus(message, "error");
 }
 async function request(url, options = {}) {
+  if (window.ChipSession) return window.ChipSession.request(url, options);
   const response = await fetch(url, options);
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
@@ -85,7 +85,6 @@ function setTake(blob) {
   $("#playTakeButton").disabled = false; $("#transcribeButton").disabled = false;
   $("#recordLabel").textContent = "Take ready";
   $("#transcribeButton").textContent = "Create music →";
-  if (!$("#layerInput").checked) $("#arrangeInput").checked = true;
   setStatus("Recording ready · press Create music", "ready");
 }
 function currentPatternId() { return $("#patternSelect").value; }
@@ -209,9 +208,6 @@ function drawPianoRoll() {
   });
   if (!pitchValues.length) { ctx.fillStyle = "#91a0b5"; ctx.font = "12px system-ui"; ctx.fillText(notes.length ? "Invalid pitch" : "No notes in the selected pattern", 16, height / 2); }
 }
-function hasAccompaniment(score) {
-  return (score?.tracks || []).some(track => ["bass", "arpeggio", "harmony", "percussion"].includes(track.id));
-}
 function updateRevision(inspection) {
   state.path = inspection.project || inspection.path;
   state.score = inspection;
@@ -233,7 +229,6 @@ function updateRevision(inspection) {
     state.originalBpm = inspection.score.bpm ?? 120;
     state.profile = inspection.score.profile || state.profile;
     document.querySelectorAll("[data-profile]").forEach(button => button.classList.toggle("selected", button.dataset.profile === state.profile));
-    $("#arrangeInput").checked = inspection.score.patterns?.melody ? hasAccompaniment(inspection.score) : true;
     $("#layerInput").disabled = state.busy;
     $("#layerAtBar").disabled = state.busy || !$("#layerInput").checked;
     renderScore();
@@ -241,31 +236,6 @@ function updateRevision(inspection) {
 }
 $("#layerInput").addEventListener("change", () => {
   $("#layerAtBar").disabled = !$("#layerInput").checked || state.busy;
-});
-$("#arrangeInput").addEventListener("change", async event => {
-  const enabled = event.target.checked;
-  if (state.busy) { event.target.checked = hasAccompaniment(state.score?.score); return; }
-  if (!state.path || !state.score?.score?.patterns?.melody) {
-    setStatus(`Accompaniment ${enabled ? "enabled" : "disabled"} for the next imported take.`, "ready");
-    return;
-  }
-  const previous = hasAccompaniment(state.score.score);
-  busy(true, enabled ? "Arranging the melody…" : "Removing accompaniment…");
-  let saved = false;
-  try {
-    const edited = structuredClone(state.score.score);
-    edited.title = title();
-    edited.bpm = Number($("#bpmInput").value);
-    const result = await jsonPost("/api/accompany", { path: state.path,
-      expected_sha256: state.score.score_sha256, enabled, score: edited });
-    updateRevision(result); saved = true;
-    await refreshProjects(result.project);
-    await renderCurrentMix();
-    setStatus(enabled ? "Accompaniment added · editable notes mix ready" : "Melody only · editable notes mix ready", "success");
-  } catch (error) {
-    if (!saved) $("#arrangeInput").checked = previous;
-    setStatus(`Could not ${saved ? "render the saved arrangement" : "update accompaniment"}: ${error.message}`, "error");
-  } finally { busy(false); }
 });
 $("#titleInput").addEventListener("input", () => { if (state.score) markDirty(); });
 $("#bpmInput").addEventListener("change", event => {
@@ -325,7 +295,7 @@ $("#transcribeButton").addEventListener("click", async () => {
   let created = false;
   $("#transcribeButton").disabled = true;
   try {
-    const result = await jsonPost("/api/transcribe", { wav_base64: await fileToBase64(state.take), bpm: Number($("#bpmInput").value), quantize: state.quantize, profile: state.profile, title: title(), arrange: !layering && $("#arrangeInput").checked,
+    const result = await jsonPost("/api/transcribe", { wav_base64: await fileToBase64(state.take), bpm: Number($("#bpmInput").value), quantize: state.quantize, profile: state.profile, title: title(), arrange: false,
       ...(layering ? { layer_on: state.path, layer_at_bar: layerAtBar, expected_sha256: state.score.score_sha256 } : {}) });
     updateRevision(result);
     created = true;

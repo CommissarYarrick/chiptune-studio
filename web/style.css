@@ -182,6 +182,13 @@ footer span { margin: 0 5px; color: var(--amber); }
 
 [hidden] { display: none !important; }
 
+@media (max-width: 590px) {
+  .mix-player { flex-wrap: wrap; }
+  .mix-player .mix-details { flex: 1 1 65%; }
+  .mix-player audio { flex: 1 0 100%; width: 100%; max-width: none; }
+  .record-button, .capture-actions .button-primary { min-height: 44px; }
+}
+
 /* The default workflow needs only recording, creation, and one finished player. */
 details > summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 14px 0; }
 .advanced-settings, .note-editor, .comparison-options, .technical-details { border-top: 1px solid var(--line); }
