@@ -64,7 +64,7 @@ The other examples, `examples/chip4.json` and `examples/console8.json`, demonstr
 
 1. Click **Record idea** and allow microphone access.
 2. Record one clear melodic line, then stop, or import a WAV.
-3. Set the BPM and quantization, choose a profile, and transcribe.
+3. Choose a profile and transcribe. **Original** timing (the default) preserves the recorded rhythm; optional grids snap notes to the BPM. Start without accompaniment to compare the melody.
 4. Review the detected pitches and durations, save a revision, and render.
 
 The original take is preserved. Local YIN pitch detection recognizes a **single melodic line**, not chords or full recordings. Recorded takes are limited to 60 seconds. An optional deterministic accompaniment provides a starting point, with the original melody unchanged. Review uncertain notes against the original take.

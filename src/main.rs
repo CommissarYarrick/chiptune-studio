@@ -63,7 +63,8 @@ enum Command {
         out: PathBuf,
         #[arg(long, default_value_t = 120.)]
         bpm: f64,
-        #[arg(long, default_value_t = 0.25)]
+        /// Timing grid in beats; 0 preserves the recorded rhythm.
+        #[arg(long, default_value_t = 0.)]
         quantize: f64,
         #[arg(long, default_value = "chip4")]
         profile: String,

@@ -179,3 +179,5 @@ footer span { margin: 0 5px; color: var(--amber); }
   .editor-footer { align-items: flex-start; padding: 8px 0; }
   .keyboard-hint { display: none; }
 }
+
+[hidden] { display: none !important; }

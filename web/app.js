@@ -1,7 +1,7 @@
 "use strict";
 
 const $ = selector => document.querySelector(selector);
-const state = { profile: "chip4", quantize: 0.25, path: null, score: null, take: null, takeUrl: null, tapTimes: [], busy: false, dirty: false, originalBpm: null };
+const state = { profile: "chip4", quantize: 0, path: null, score: null, take: null, takeUrl: null, tapTimes: [], busy: false, dirty: false, originalBpm: null };
 const recorder = new TakeRecorder(level => drawWave(level), seconds => showTime(seconds), mode => recordingState(mode), blob => setTake(blob));
 
 function setStatus(message, kind = "ready") {
@@ -184,6 +184,10 @@ function updateRevision(inspection) {
   state.path = inspection.project || inspection.path;
   state.score = inspection;
   state.dirty = false;
+  const original = $("#originalAudio");
+  const originalUrl = inspection.original_url || (inspection.result?.transcription && state.takeUrl);
+  $("#originalPlayer").hidden = !originalUrl;
+  if (originalUrl) { original.src = originalUrl; original.load(); }
   if (inspection.score) {
     $("#titleInput").value = inspection.score.title || title();
     $("#bpmInput").value = inspection.score.bpm ?? 120;

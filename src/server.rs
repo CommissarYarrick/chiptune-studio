@@ -40,7 +40,11 @@ fn inside(root: &Path, value: &str) -> Result<PathBuf> {
         return Err(anyhow!("Path must stay below the configured root"));
     }
     let tail = candidate.strip_prefix(ancestor)?;
-    if tail.as_os_str().is_empty() { Ok(resolved) } else { Ok(resolved.join(tail)) }
+    if tail.as_os_str().is_empty() {
+        Ok(resolved)
+    } else {
+        Ok(resolved.join(tail))
+    }
 }
 fn rel(root: &Path, p: &Path) -> Result<String> {
     Ok(p.canonicalize()?
@@ -174,6 +178,21 @@ pub fn studio(root: &Path, port: u16) -> Result<()> {
                         let p = inside(&root, &query_path(&url))?;
                         let mut v = crate::engine::inspect(&p)?;
                         v["path"] = json!(rel(&root, &p)?);
+                        let metadata = project_base(&root, &p).join("score.transcription.json");
+                        if metadata.is_file() {
+                            let meta: Value = serde_json::from_slice(&fs::read(metadata)?)?;
+                            if let Some(take) = meta["audio"]["saved_take"].as_str() {
+                                // rel canonicalizes and checks the configured root before exposing audio.
+                                if let Ok(relative) = rel(&root, Path::new(take)) {
+                                    v["original_url"] = json!(format!(
+                                        "/audio?path={}",
+                                        form_urlencoded::byte_serialize(relative.as_bytes())
+                                            .collect::<String>()
+                                    ));
+                                }
+                            }
+                            v["transcription"] = meta;
+                        }
                         json_response(200, v)
                     }
                     "/audio" => {
@@ -278,9 +297,9 @@ pub fn studio(root: &Path, port: u16) -> Result<()> {
                         &take,
                         &score,
                         data["bpm"].as_f64().unwrap_or(120.),
-                        data["quantize"].as_f64().unwrap_or(0.25),
+                        data["quantize"].as_f64().unwrap_or(0.),
                         data["profile"].as_str().unwrap_or("chip4"),
-                        data["arrange"].as_bool().unwrap_or(true),
+                        data["arrange"].as_bool().unwrap_or(false),
                         data["title"].as_str().unwrap_or("Take"),
                     )?;
                     let mut v = crate::engine::inspect(&score)?;
@@ -536,9 +555,11 @@ mod tests {
     }
     #[test]
     fn existing_file_resolution_does_not_append_directory_separator() {
-        let d=std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());fs::create_dir_all(&d).unwrap();
-        fs::write(d.join("score.json"),b"{}").unwrap();
-        let root=d.canonicalize().unwrap();let path=inside(&root,"score.json").unwrap();
-        assert_eq!(fs::read(path).unwrap(),b"{}");
+        let d = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        fs::create_dir_all(&d).unwrap();
+        fs::write(d.join("score.json"), b"{}").unwrap();
+        let root = d.canonicalize().unwrap();
+        let path = inside(&root, "score.json").unwrap();
+        assert_eq!(fs::read(path).unwrap(), b"{}");
     }
 }

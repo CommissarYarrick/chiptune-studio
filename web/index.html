@@ -34,8 +34,8 @@
         </div>
         <div class="tap-row"><span class="field-label">TEMPO</span><button id="tapButton" class="text-button">Tap to set tempo <span>↗</span></button><span id="tapReadout" class="muted">—</span></div>
         <div class="option-row"><div><span class="field-label">NEW TRACK PROFILE</span><p>Voices available in your setup</p></div><div class="segmented"><button data-profile="chip4" class="selected">CHIP 4</button><button data-profile="console8">CONSOLE 8</button></div></div>
-        <div class="option-row"><div><span class="field-label">QUANTIZATION</span><p>Align notes to the beat</p></div><div class="segmented quantize"><button data-quantize="1">¼</button><button data-quantize="0.5">⅛</button><button data-quantize="0.25" class="selected">¹⁄₁₆</button></div></div>
-        <label class="arrange-option"><input id="arrangeInput" type="checkbox" checked><span class="checkmark"></span><span>Add accompaniment</span></label>
+        <div class="option-row"><div><span class="field-label">TIMING</span><p>Keep your rhythm or align to a grid</p></div><div class="segmented quantize"><button data-quantize="0" class="selected">ORIGINAL</button><button data-quantize="1">¼</button><button data-quantize="0.5">⅛</button><button data-quantize="0.25">¹⁄₁₆</button></div></div>
+        <label class="arrange-option"><input id="arrangeInput" type="checkbox"><span class="checkmark"></span><span>Add accompaniment</span></label>
         <div class="capture-actions"><button id="transcribeButton" class="button-primary" disabled>Transcribe take <span>→</span></button><button id="newButton" class="button-quiet">New project</button></div>
         <p class="privacy-note"><span>⌖</span> Audio stays on your computer.</p>
       </section>
@@ -45,6 +45,7 @@
         <canvas id="pianoRoll" class="piano-roll" aria-label="Notes in the pattern"></canvas>
         <div class="table-wrap"><table><thead><tr><th>NOTE</th><th>PITCH</th><th>START</th><th>DURATION</th><th>VELOCITY</th><th></th></tr></thead><tbody id="notesBody"><tr><td colspan="6" class="empty-cell">Capture a take or open a project to see its notes.</td></tr></tbody></table></div>
         <div class="editor-footer"><span id="revisionHint">Changes are saved as a new revision.</span><span class="keyboard-hint">↑↓ PITCH&nbsp;&nbsp; · &nbsp;&nbsp;QUARTER BEATS</span></div>
+        <div id="originalPlayer" class="mix-player" hidden><span class="field-label">ORIGINAL RECORDING</span><audio id="originalAudio" controls preload="metadata"></audio></div>
         <div class="mix-player"><div class="mix-icon">♫</div><div class="mix-details"><span class="field-label">LISTEN TO THE MIX</span><span id="mixName">No render yet</span></div><button id="renderButton" class="button-primary" disabled>Render mix <span>→</span></button><audio id="mixAudio" controls hidden></audio><a id="downloadOgg" class="small-button" download="mix.ogg" hidden>Download Ogg</a></div>
       </section>
     </div>

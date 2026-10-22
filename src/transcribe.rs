@@ -170,7 +170,7 @@ fn yin(frame: &[f32], rate: f64, low: f64, high: f64) -> (f64, f64) {
 
 pub fn detect(samples: &[f32], bpm: f64, quantize: f64) -> Result<Value> {
     number(bpm, 30.0, 300.0, "bpm")?;
-    number(quantize, 0.0625, 2.0, "quantize")?;
+    validate_quantize(quantize)?;
     if samples.iter().any(|x| !x.is_finite()) {
         return Err(anyhow!("Recording contains nonfinite samples"));
     }
@@ -199,10 +199,11 @@ pub fn detect(samples: &[f32], bpm: f64, quantize: f64) -> Result<Value> {
         sorted.sort_by(f64::total_cmp);
         sorted[((sorted.len() - 1) * 20) / 100]
     };
-    let gate = 1e-5f64
-        .max((0.002f64).min(p20 * 2.0))
-        .max(energies.iter().copied().fold(0.0, f64::max) * 0.015);
-    let mut pitches: Vec<Option<i32>> = Vec::new();
+    // A quiet sustained note must not become its own noise floor. Cap the
+    // noise estimate relative to the loudest frame; periodicity rejects noise.
+    let peak_energy = energies.iter().copied().fold(0.0, f64::max);
+    let gate = 1e-6f64.max((p20 * 2.0).min(peak_energy * 0.04));
+    let mut pitches: Vec<Option<f64>> = Vec::new();
     let mut confs = Vec::new();
     let mut curve = Vec::new();
     for (i, &s) in starts.iter().enumerate() {
@@ -211,43 +212,55 @@ pub fn detect(samples: &[f32], bpm: f64, quantize: f64) -> Result<Value> {
         } else {
             (0.0, 0.0)
         };
-        let midi = if hz > 0.0 && conf >= 0.75 {
+        let midi = if hz > 0.0 && conf >= 0.65 {
             Some(69.0 + 12.0 * (hz / 440.0).log2())
         } else {
             None
         };
-        let note = midi
-            .filter(|m| (0.0..=127.0).contains(m))
-            .map(|m| m.round_ties_even() as i32);
+        let note = midi.filter(|m| (0.0..=127.0).contains(m));
         pitches.push(note);
         confs.push(conf);
         curve.push(json!({"seconds":(s as f64+FRAME as f64/2.0)/RATE as f64,"hz":(hz*1000.0).round()/1000.0,"confidence":(conf*10000.0).round()/10000.0}));
     }
     let mut smooth = pitches.clone();
-    for i in 1..pitches.len().saturating_sub(1) {
-        if pitches[i - 1].is_some() && pitches[i].is_some() && pitches[i + 1].is_some() {
-            let mut a = [
-                pitches[i - 1].unwrap() as f64,
-                pitches[i].unwrap() as f64,
-                pitches[i + 1].unwrap() as f64,
-            ];
-            smooth[i] = Some(median(&mut a) as i32);
-        } else if pitches[i].is_none()
-            && pitches[i - 1].is_some()
-            && pitches[i - 1] == pitches[i + 1]
+    for i in 0..pitches.len() {
+        if pitches[i].is_some() {
+            let mut window: Vec<f64> = pitches[i.saturating_sub(2)..(i + 3).min(pitches.len())]
+                .iter()
+                .flatten()
+                .copied()
+                .collect();
+            smooth[i] = Some(median(&mut window));
+        } else if i > 0
+            && i + 1 < pitches.len()
+            && let (Some(a), Some(b)) = (pitches[i - 1], pitches[i + 1])
+            && (a - b).abs() < 0.7
         {
-            smooth[i] = pitches[i - 1];
+            smooth[i] = Some((a + b) * 0.5);
         }
     }
+    // Quantizing every frame before segmentation fragments normal vocal vibrato
+    // at semitone boundaries. Apply hysteresis first, then round each note.
+    let mut held: Option<i32> = None;
+    let labels: Vec<Option<i32>> = smooth
+        .iter()
+        .map(|pitch| {
+            held = pitch.map(|m| match held {
+                Some(note) if (m - note as f64).abs() < 0.8 => note,
+                _ => m.round_ties_even() as i32,
+            });
+            held
+        })
+        .collect();
     let mut segments = Vec::new();
     let mut start = 0;
-    for i in 1..=smooth.len() {
-        if i < smooth.len() && smooth[i] == smooth[start] {
+    for i in 1..=labels.len() {
+        if i < labels.len() && labels[i] == labels[start] {
             continue;
         }
-        if let Some(note) = smooth[start]
-            && (i - start) * HOP >= ((0.07 * RATE as f64) as usize)
-        {
+        if labels[start].is_some() && (i - start) * HOP >= ((0.04 * RATE as f64) as usize) {
+            let mut values: Vec<f64> = smooth[start..i].iter().flatten().copied().collect();
+            let note = median(&mut values).round_ties_even() as i32;
             let mut cs = confs[start..i].to_vec();
             segments.push(json!({"note":note,"start":((start*HOP) as f64+FRAME as f64/2.0-HOP as f64/2.0).max(0.0)/RATE as f64,"end":(i as f64*HOP as f64+FRAME as f64/2.0-HOP as f64/2.0)/RATE as f64,"confidence":median(&mut cs)}));
         }
@@ -261,14 +274,21 @@ pub fn detect(samples: &[f32], bpm: f64, quantize: f64) -> Result<Value> {
     let offset = segments[0]["start"].as_f64().unwrap_or(0.0);
     let mut notes: Vec<Value> = Vec::new();
     for seg in &segments {
-        let at = (((seg["start"].as_f64().unwrap_or(0.0) - offset) * bpm / 60.0 / quantize)
-            .round_ties_even()
-            * quantize)
-            .max(0.0);
-        let mut end = ((seg["end"].as_f64().unwrap_or(0.0) - offset) * bpm / 60.0 / quantize)
-            .round_ties_even()
-            * quantize;
-        end = end.max(at + quantize);
+        let snap = |seconds: f64| {
+            let beats = (seconds - offset) * bpm / 60.0;
+            if quantize == 0.0 {
+                beats
+            } else {
+                (beats / quantize).round_ties_even() * quantize
+            }
+        };
+        let minimum = if quantize == 0.0 {
+            HOP as f64 / RATE as f64 * bpm / 60.0
+        } else {
+            quantize
+        };
+        let at = snap(seg["start"].as_f64().unwrap_or(0.0)).max(0.0);
+        let mut end = snap(seg["end"].as_f64().unwrap_or(0.0)).max(at + minimum);
         if let Some(prev) = notes.last_mut() {
             let pa = prev["at"].as_f64().unwrap_or(0.0);
             let pe = pa + prev["duration"].as_f64().unwrap_or(0.0);
@@ -277,7 +297,7 @@ pub fn detect(samples: &[f32], bpm: f64, quantize: f64) -> Result<Value> {
                 if at > pa {
                     prev["duration"] = json!(at - pa);
                 }
-                end = end.max(actual_at + quantize);
+                end = end.max(actual_at + minimum);
                 notes.push(json!({"id":format!("hum_{}",notes.len()),"at":actual_at,"note":seg["note"],"duration":end-actual_at,"velocity":0.82}));
                 continue;
             }
@@ -289,8 +309,16 @@ pub fn detect(samples: &[f32], bpm: f64, quantize: f64) -> Result<Value> {
         .map(|s| s["confidence"].as_f64().unwrap_or(0.0))
         .collect();
     Ok(
-        json!({"notes":notes,"raw_segments":segments,"pitch_curve":curve,"leading_seconds_trimmed":offset,"quantize_beats":quantize,"bpm":bpm,"median_confidence":median(&mut cs),"analysis_rate":RATE,"warnings":["Short notes and slides are quantized to equal-tempered notes; review the original take."]}),
+        json!({"notes":notes,"raw_segments":segments,"pitch_curve":curve,"leading_seconds_trimmed":offset,"quantize_beats":quantize,"timing_mode":if quantize == 0.0 {"original"} else {"grid"},"bpm":bpm,"median_confidence":median(&mut cs),"voiced_fraction":pitches.iter().filter(|p| p.is_some()).count() as f64 / pitches.len() as f64,"analysis_rate":RATE,"warnings":["Pitch is transcribed to semitones; slides and timbre are not preserved. Compare with the original take."]}),
     )
+}
+
+fn validate_quantize(quantize: f64) -> Result<()> {
+    if quantize == 0.0 {
+        Ok(())
+    } else {
+        number(quantize, 0.0625, 2.0, "quantize (0 preserves timing)").map(|_| ())
+    }
 }
 
 fn estimate_key(notes: &[Value]) -> Result<(usize, &'static str, f64)> {
@@ -465,7 +493,7 @@ pub fn import_take(
     title: &str,
 ) -> Result<Value> {
     number(bpm, 30.0, 300.0, "bpm")?;
-    number(quantize, 0.0625, 2.0, "quantize")?;
+    validate_quantize(quantize)?;
     if !matches!(profile, "chip4" | "console8") {
         return Err(anyhow!("Unknown profile"));
     }
@@ -489,6 +517,13 @@ pub fn import_take(
         lead["adsr"] = json!([0.004, 0.14, 0.55, 0.08]);
         data["instruments"]["lead"] = lead;
     }
+    // Imported articulation should come from the take, not the demo preset's
+    // synthetic vibrato, long release, and plucked decay.
+    data["instruments"]["lead"]
+        .as_object_mut()
+        .unwrap()
+        .remove("vibrato");
+    data["instruments"]["lead"]["adsr"] = json!([0.004, 0.025, 0.9, 0.012]);
     let harmony = if arrange {
         let (d, h) = accompany(&data)?;
         data = d;
