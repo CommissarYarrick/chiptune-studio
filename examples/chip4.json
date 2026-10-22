@@ -1,0 +1,1558 @@
+{
+  "version": 1,
+  "title": "Lantern Circuit",
+  "profile": "chip4",
+  "bpm": 132,
+  "meter": [
+    4,
+    4
+  ],
+  "length": 32,
+  "seed": 731,
+  "master_gain_db": -3,
+  "delay": {
+    "beats": 0.75,
+    "mix": 0.07,
+    "feedback": 0.28
+  },
+  "instruments": {
+    "lead": {
+      "wave": "pulse",
+      "duty": 0.25,
+      "adsr": [
+        0.003,
+        0.1,
+        0.62,
+        0.045
+      ],
+      "vibrato": [
+        5.5,
+        12,
+        0.16
+      ]
+    },
+    "arp": {
+      "wave": "pulse",
+      "duty": 0.125,
+      "adsr": [
+        0.002,
+        0.08,
+        0.28,
+        0.025
+      ]
+    },
+    "bass": {
+      "wave": "triangle",
+      "bits": 4,
+      "adsr": [
+        0.002,
+        0.06,
+        0.8,
+        0.025
+      ]
+    },
+    "hat": {
+      "wave": "noise",
+      "adsr": [
+        0.001,
+        0.026,
+        0,
+        0.008
+      ]
+    },
+    "snare": {
+      "wave": "noise",
+      "adsr": [
+        0.001,
+        0.075,
+        0,
+        0.02
+      ]
+    },
+    "kick": {
+      "wave": "kick",
+      "pitch_slide": 18,
+      "slide_ms": 35,
+      "adsr": [
+        0.001,
+        0.09,
+        0,
+        0.015
+      ]
+    },
+    "bell": {
+      "wave": "sine",
+      "adsr": [
+        0.002,
+        0.3,
+        0.06,
+        0.18
+      ]
+    },
+    "warm": {
+      "wave": "wavetable",
+      "table": [
+        0,
+        0.36,
+        0.66,
+        0.86,
+        0.97,
+        1,
+        0.97,
+        0.93,
+        0.88,
+        0.83,
+        0.76,
+        0.67,
+        0.56,
+        0.43,
+        0.29,
+        0.14,
+        0,
+        -0.14,
+        -0.29,
+        -0.43,
+        -0.56,
+        -0.67,
+        -0.76,
+        -0.83,
+        -0.88,
+        -0.93,
+        -0.97,
+        -1,
+        -0.97,
+        -0.86,
+        -0.66,
+        -0.36
+      ],
+      "adsr": [
+        0.025,
+        0.16,
+        0.62,
+        0.2
+      ],
+      "vibrato": [
+        4.5,
+        5,
+        0.2
+      ]
+    }
+  },
+  "patterns": {
+    "drums": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "d0",
+          "at": 0,
+          "note": "C2",
+          "instrument": "kick",
+          "duration": 0.16,
+          "velocity": 0.8
+        },
+        {
+          "id": "d1",
+          "at": 0.75,
+          "note": "F#2",
+          "instrument": "hat",
+          "duration": 0.1,
+          "velocity": 0.45
+        },
+        {
+          "id": "d2",
+          "at": 1,
+          "note": "D2",
+          "instrument": "snare",
+          "duration": 0.16,
+          "velocity": 0.8
+        },
+        {
+          "id": "d3",
+          "at": 1.75,
+          "note": "F#2",
+          "instrument": "hat",
+          "duration": 0.1,
+          "velocity": 0.45
+        },
+        {
+          "id": "d4",
+          "at": 2,
+          "note": "C2",
+          "instrument": "kick",
+          "duration": 0.16,
+          "velocity": 0.8
+        },
+        {
+          "id": "d5",
+          "at": 2.5,
+          "note": "F#2",
+          "instrument": "hat",
+          "duration": 0.1,
+          "velocity": 0.45
+        },
+        {
+          "id": "d6",
+          "at": 3,
+          "note": "D2",
+          "instrument": "snare",
+          "duration": 0.16,
+          "velocity": 0.8
+        },
+        {
+          "id": "d7",
+          "at": 3.75,
+          "note": "F#2",
+          "instrument": "hat",
+          "duration": 0.1,
+          "velocity": 0.45
+        }
+      ]
+    },
+    "melody_0": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "n0",
+          "at": 0,
+          "note": "G4",
+          "duration": 0.5,
+          "velocity": 0.9
+        },
+        {
+          "id": "n1",
+          "at": 0.5,
+          "note": "C5",
+          "duration": 0.5,
+          "velocity": 0.72
+        },
+        {
+          "id": "n2",
+          "at": 1,
+          "note": "Eb5",
+          "duration": 0.75,
+          "velocity": 0.9
+        },
+        {
+          "id": "n3",
+          "at": 1.75,
+          "note": "D5",
+          "duration": 0.25,
+          "velocity": 0.72
+        },
+        {
+          "id": "n4",
+          "at": 2,
+          "note": "C5",
+          "duration": 0.875,
+          "velocity": 0.9
+        },
+        {
+          "id": "n5",
+          "at": 3,
+          "note": "Bb4",
+          "duration": 0.5,
+          "velocity": 0.9
+        },
+        {
+          "id": "n6",
+          "at": 3.5,
+          "note": "G4",
+          "duration": 0.375,
+          "velocity": 0.72
+        }
+      ]
+    },
+    "bass_0": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "b0",
+          "at": 0,
+          "note": 36,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b1",
+          "at": 1.5,
+          "note": 43,
+          "duration": 0.35,
+          "velocity": 0.85
+        },
+        {
+          "id": "b2",
+          "at": 2,
+          "note": 36,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b3",
+          "at": 3.5,
+          "note": 36,
+          "duration": 0.35,
+          "velocity": 0.85
+        }
+      ]
+    },
+    "chord_0": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "a0",
+          "at": 0,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a1",
+          "at": 0.5,
+          "note": 63,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a2",
+          "at": 1,
+          "note": 67,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a3",
+          "at": 1.5,
+          "note": 63,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a4",
+          "at": 2,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a5",
+          "at": 2.5,
+          "note": 67,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a6",
+          "at": 3,
+          "note": 63,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a7",
+          "at": 3.5,
+          "note": 67,
+          "duration": 0.32,
+          "velocity": 0.55
+        }
+      ]
+    },
+    "melody_1": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "n0",
+          "at": 0,
+          "note": "Ab4",
+          "duration": 0.5,
+          "velocity": 0.9
+        },
+        {
+          "id": "n1",
+          "at": 0.5,
+          "note": "C5",
+          "duration": 0.5,
+          "velocity": 0.72
+        },
+        {
+          "id": "n2",
+          "at": 1,
+          "note": "Eb5",
+          "duration": 1,
+          "velocity": 0.9
+        },
+        {
+          "id": "n3",
+          "at": 2.25,
+          "note": "C5",
+          "duration": 0.5,
+          "velocity": 0.72
+        },
+        {
+          "id": "n4",
+          "at": 3,
+          "note": "Bb4",
+          "duration": 0.5,
+          "velocity": 0.9
+        },
+        {
+          "id": "n5",
+          "at": 3.5,
+          "note": "Ab4",
+          "duration": 0.375,
+          "velocity": 0.72
+        }
+      ]
+    },
+    "bass_1": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "b0",
+          "at": 0,
+          "note": 32,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b1",
+          "at": 1.5,
+          "note": 39,
+          "duration": 0.35,
+          "velocity": 0.85
+        },
+        {
+          "id": "b2",
+          "at": 2,
+          "note": 32,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b3",
+          "at": 3.5,
+          "note": 32,
+          "duration": 0.35,
+          "velocity": 0.85
+        }
+      ]
+    },
+    "chord_1": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "a0",
+          "at": 0,
+          "note": 56,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a1",
+          "at": 0.5,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a2",
+          "at": 1,
+          "note": 63,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a3",
+          "at": 1.5,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a4",
+          "at": 2,
+          "note": 56,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a5",
+          "at": 2.5,
+          "note": 63,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a6",
+          "at": 3,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a7",
+          "at": 3.5,
+          "note": 63,
+          "duration": 0.32,
+          "velocity": 0.55
+        }
+      ]
+    },
+    "melody_2": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "n0",
+          "at": 0,
+          "note": "F4",
+          "duration": 0.5,
+          "velocity": 0.9
+        },
+        {
+          "id": "n1",
+          "at": 0.5,
+          "note": "Ab4",
+          "duration": 0.5,
+          "velocity": 0.72
+        },
+        {
+          "id": "n2",
+          "at": 1,
+          "note": "C5",
+          "duration": 0.75,
+          "velocity": 0.9
+        },
+        {
+          "id": "n3",
+          "at": 1.75,
+          "note": "Bb4",
+          "duration": 0.25,
+          "velocity": 0.72
+        },
+        {
+          "id": "n4",
+          "at": 2,
+          "note": "Ab4",
+          "duration": 0.75,
+          "velocity": 0.9
+        },
+        {
+          "id": "n5",
+          "at": 3,
+          "note": "G4",
+          "duration": 0.5,
+          "velocity": 0.9
+        },
+        {
+          "id": "n6",
+          "at": 3.5,
+          "note": "F4",
+          "duration": 0.375,
+          "velocity": 0.72
+        }
+      ]
+    },
+    "bass_2": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "b0",
+          "at": 0,
+          "note": 29,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b1",
+          "at": 1.5,
+          "note": 36,
+          "duration": 0.35,
+          "velocity": 0.85
+        },
+        {
+          "id": "b2",
+          "at": 2,
+          "note": 29,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b3",
+          "at": 3.5,
+          "note": 29,
+          "duration": 0.35,
+          "velocity": 0.85
+        }
+      ]
+    },
+    "chord_2": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "a0",
+          "at": 0,
+          "note": 53,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a1",
+          "at": 0.5,
+          "note": 56,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a2",
+          "at": 1,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a3",
+          "at": 1.5,
+          "note": 56,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a4",
+          "at": 2,
+          "note": 53,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a5",
+          "at": 2.5,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a6",
+          "at": 3,
+          "note": 56,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a7",
+          "at": 3.5,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.55
+        }
+      ]
+    },
+    "melody_3": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "n0",
+          "at": 0,
+          "note": "G4",
+          "duration": 0.5,
+          "velocity": 0.9
+        },
+        {
+          "id": "n1",
+          "at": 0.5,
+          "note": "B4",
+          "duration": 0.5,
+          "velocity": 0.72
+        },
+        {
+          "id": "n2",
+          "at": 1,
+          "note": "D5",
+          "duration": 0.75,
+          "velocity": 0.9
+        },
+        {
+          "id": "n3",
+          "at": 1.75,
+          "note": "F5",
+          "duration": 0.25,
+          "velocity": 0.72
+        },
+        {
+          "id": "n4",
+          "at": 2,
+          "note": "Eb5",
+          "duration": 0.5,
+          "velocity": 0.9
+        },
+        {
+          "id": "n5",
+          "at": 2.5,
+          "note": "D5",
+          "duration": 0.5,
+          "velocity": 0.72
+        },
+        {
+          "id": "n6",
+          "at": 3,
+          "note": "B4",
+          "duration": 0.75,
+          "velocity": 0.9
+        }
+      ]
+    },
+    "bass_3": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "b0",
+          "at": 0,
+          "note": 31,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b1",
+          "at": 1.5,
+          "note": 38,
+          "duration": 0.35,
+          "velocity": 0.85
+        },
+        {
+          "id": "b2",
+          "at": 2,
+          "note": 31,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b3",
+          "at": 3.5,
+          "note": 31,
+          "duration": 0.35,
+          "velocity": 0.85
+        }
+      ]
+    },
+    "chord_3": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "a0",
+          "at": 0,
+          "note": 55,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a1",
+          "at": 0.5,
+          "note": 59,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a2",
+          "at": 1,
+          "note": 62,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a3",
+          "at": 1.5,
+          "note": 59,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a4",
+          "at": 2,
+          "note": 55,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a5",
+          "at": 2.5,
+          "note": 62,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a6",
+          "at": 3,
+          "note": 59,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a7",
+          "at": 3.5,
+          "note": 62,
+          "duration": 0.32,
+          "velocity": 0.55
+        }
+      ]
+    },
+    "melody_4": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "n0",
+          "at": 0,
+          "note": "C5",
+          "duration": 0.75,
+          "velocity": 0.9
+        },
+        {
+          "id": "n1",
+          "at": 0.75,
+          "note": "G4",
+          "duration": 0.25,
+          "velocity": 0.72
+        },
+        {
+          "id": "n2",
+          "at": 1,
+          "note": "Eb5",
+          "duration": 0.75,
+          "velocity": 0.9
+        },
+        {
+          "id": "n3",
+          "at": 1.75,
+          "note": "G5",
+          "duration": 0.25,
+          "velocity": 0.72
+        },
+        {
+          "id": "n4",
+          "at": 2,
+          "note": "Eb5",
+          "duration": 0.75,
+          "velocity": 0.9
+        },
+        {
+          "id": "n5",
+          "at": 3,
+          "note": "D5",
+          "duration": 0.5,
+          "velocity": 0.9
+        },
+        {
+          "id": "n6",
+          "at": 3.5,
+          "note": "C5",
+          "duration": 0.375,
+          "velocity": 0.72
+        }
+      ]
+    },
+    "bass_4": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "b0",
+          "at": 0,
+          "note": 36,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b1",
+          "at": 1.5,
+          "note": 43,
+          "duration": 0.35,
+          "velocity": 0.85
+        },
+        {
+          "id": "b2",
+          "at": 2,
+          "note": 36,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b3",
+          "at": 3.5,
+          "note": 36,
+          "duration": 0.35,
+          "velocity": 0.85
+        }
+      ]
+    },
+    "chord_4": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "a0",
+          "at": 0,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a1",
+          "at": 0.5,
+          "note": 63,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a2",
+          "at": 1,
+          "note": 67,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a3",
+          "at": 1.5,
+          "note": 63,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a4",
+          "at": 2,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a5",
+          "at": 2.5,
+          "note": 67,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a6",
+          "at": 3,
+          "note": 63,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a7",
+          "at": 3.5,
+          "note": 67,
+          "duration": 0.32,
+          "velocity": 0.55
+        }
+      ]
+    },
+    "melody_5": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "n0",
+          "at": 0,
+          "note": "Eb5",
+          "duration": 0.75,
+          "velocity": 0.9
+        },
+        {
+          "id": "n1",
+          "at": 0.75,
+          "note": "C5",
+          "duration": 0.25,
+          "velocity": 0.72
+        },
+        {
+          "id": "n2",
+          "at": 1,
+          "note": "Ab4",
+          "duration": 0.75,
+          "velocity": 0.9
+        },
+        {
+          "id": "n3",
+          "at": 2,
+          "note": "C5",
+          "duration": 0.5,
+          "velocity": 0.9
+        },
+        {
+          "id": "n4",
+          "at": 2.5,
+          "note": "Eb5",
+          "duration": 0.5,
+          "velocity": 0.72
+        },
+        {
+          "id": "n5",
+          "at": 3,
+          "note": "C5",
+          "duration": 0.75,
+          "velocity": 0.9
+        }
+      ]
+    },
+    "bass_5": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "b0",
+          "at": 0,
+          "note": 32,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b1",
+          "at": 1.5,
+          "note": 39,
+          "duration": 0.35,
+          "velocity": 0.85
+        },
+        {
+          "id": "b2",
+          "at": 2,
+          "note": 32,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b3",
+          "at": 3.5,
+          "note": 32,
+          "duration": 0.35,
+          "velocity": 0.85
+        }
+      ]
+    },
+    "chord_5": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "a0",
+          "at": 0,
+          "note": 56,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a1",
+          "at": 0.5,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a2",
+          "at": 1,
+          "note": 63,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a3",
+          "at": 1.5,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a4",
+          "at": 2,
+          "note": 56,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a5",
+          "at": 2.5,
+          "note": 63,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a6",
+          "at": 3,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a7",
+          "at": 3.5,
+          "note": 63,
+          "duration": 0.32,
+          "velocity": 0.55
+        }
+      ]
+    },
+    "melody_6": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "n0",
+          "at": 0,
+          "note": "F5",
+          "duration": 0.5,
+          "velocity": 0.9
+        },
+        {
+          "id": "n1",
+          "at": 0.5,
+          "note": "Eb5",
+          "duration": 0.5,
+          "velocity": 0.72
+        },
+        {
+          "id": "n2",
+          "at": 1,
+          "note": "C5",
+          "duration": 0.75,
+          "velocity": 0.9
+        },
+        {
+          "id": "n3",
+          "at": 1.75,
+          "note": "Ab4",
+          "duration": 0.25,
+          "velocity": 0.72
+        },
+        {
+          "id": "n4",
+          "at": 2,
+          "note": "C5",
+          "duration": 0.75,
+          "velocity": 0.9
+        },
+        {
+          "id": "n5",
+          "at": 3,
+          "note": "Bb4",
+          "duration": 0.5,
+          "velocity": 0.9
+        },
+        {
+          "id": "n6",
+          "at": 3.5,
+          "note": "Ab4",
+          "duration": 0.375,
+          "velocity": 0.72
+        }
+      ]
+    },
+    "bass_6": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "b0",
+          "at": 0,
+          "note": 29,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b1",
+          "at": 1.5,
+          "note": 36,
+          "duration": 0.35,
+          "velocity": 0.85
+        },
+        {
+          "id": "b2",
+          "at": 2,
+          "note": 29,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b3",
+          "at": 3.5,
+          "note": 29,
+          "duration": 0.35,
+          "velocity": 0.85
+        }
+      ]
+    },
+    "chord_6": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "a0",
+          "at": 0,
+          "note": 53,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a1",
+          "at": 0.5,
+          "note": 56,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a2",
+          "at": 1,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a3",
+          "at": 1.5,
+          "note": 56,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a4",
+          "at": 2,
+          "note": 53,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a5",
+          "at": 2.5,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a6",
+          "at": 3,
+          "note": 56,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a7",
+          "at": 3.5,
+          "note": 60,
+          "duration": 0.32,
+          "velocity": 0.55
+        }
+      ]
+    },
+    "melody_7": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "n0",
+          "at": 0,
+          "note": "B4",
+          "duration": 0.5,
+          "velocity": 0.9
+        },
+        {
+          "id": "n1",
+          "at": 0.5,
+          "note": "D5",
+          "duration": 0.5,
+          "velocity": 0.72
+        },
+        {
+          "id": "n2",
+          "at": 1,
+          "note": "G5",
+          "duration": 0.75,
+          "velocity": 0.9
+        },
+        {
+          "id": "n3",
+          "at": 2,
+          "note": "F5",
+          "duration": 0.25,
+          "velocity": 0.9
+        },
+        {
+          "id": "n4",
+          "at": 2.25,
+          "note": "D5",
+          "duration": 0.25,
+          "velocity": 0.72
+        },
+        {
+          "id": "n5",
+          "at": 2.5,
+          "note": "B4",
+          "duration": 0.375,
+          "velocity": 0.72
+        },
+        {
+          "id": "n6",
+          "at": 3,
+          "note": "G4",
+          "duration": 0.5,
+          "velocity": 0.9
+        }
+      ]
+    },
+    "bass_7": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "b0",
+          "at": 0,
+          "note": 31,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b1",
+          "at": 1.5,
+          "note": 38,
+          "duration": 0.35,
+          "velocity": 0.85
+        },
+        {
+          "id": "b2",
+          "at": 2,
+          "note": 31,
+          "duration": 0.8,
+          "velocity": 0.85
+        },
+        {
+          "id": "b3",
+          "at": 3.5,
+          "note": 31,
+          "duration": 0.35,
+          "velocity": 0.85
+        }
+      ]
+    },
+    "chord_7": {
+      "length": 4,
+      "notes": [
+        {
+          "id": "a0",
+          "at": 0,
+          "note": 55,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a1",
+          "at": 0.5,
+          "note": 59,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a2",
+          "at": 1,
+          "note": 62,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a3",
+          "at": 1.5,
+          "note": 59,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a4",
+          "at": 2,
+          "note": 55,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a5",
+          "at": 2.5,
+          "note": 62,
+          "duration": 0.32,
+          "velocity": 0.55
+        },
+        {
+          "id": "a6",
+          "at": 3,
+          "note": 59,
+          "duration": 0.32,
+          "velocity": 0.7
+        },
+        {
+          "id": "a7",
+          "at": 3.5,
+          "note": 62,
+          "duration": 0.32,
+          "velocity": 0.55
+        }
+      ]
+    }
+  },
+  "tracks": [
+    {
+      "id": "lead",
+      "instrument": "lead",
+      "gain_db": -7,
+      "pan": -0.1,
+      "slot": "pulse1",
+      "clips": [
+        {
+          "id": "bar_0",
+          "pattern": "melody_0",
+          "at": 0
+        },
+        {
+          "id": "bar_1",
+          "pattern": "melody_1",
+          "at": 4
+        },
+        {
+          "id": "bar_2",
+          "pattern": "melody_2",
+          "at": 8
+        },
+        {
+          "id": "bar_3",
+          "pattern": "melody_3",
+          "at": 12
+        },
+        {
+          "id": "bar_4",
+          "pattern": "melody_4",
+          "at": 16
+        },
+        {
+          "id": "bar_5",
+          "pattern": "melody_5",
+          "at": 20
+        },
+        {
+          "id": "bar_6",
+          "pattern": "melody_6",
+          "at": 24
+        },
+        {
+          "id": "bar_7",
+          "pattern": "melody_7",
+          "at": 28
+        }
+      ]
+    },
+    {
+      "id": "arpeggio",
+      "instrument": "arp",
+      "gain_db": -15,
+      "pan": 0.15,
+      "slot": "pulse2",
+      "clips": [
+        {
+          "id": "bar_0",
+          "pattern": "chord_0",
+          "at": 0
+        },
+        {
+          "id": "bar_1",
+          "pattern": "chord_1",
+          "at": 4
+        },
+        {
+          "id": "bar_2",
+          "pattern": "chord_2",
+          "at": 8
+        },
+        {
+          "id": "bar_3",
+          "pattern": "chord_3",
+          "at": 12
+        },
+        {
+          "id": "bar_4",
+          "pattern": "chord_4",
+          "at": 16
+        },
+        {
+          "id": "bar_5",
+          "pattern": "chord_5",
+          "at": 20
+        },
+        {
+          "id": "bar_6",
+          "pattern": "chord_6",
+          "at": 24
+        },
+        {
+          "id": "bar_7",
+          "pattern": "chord_7",
+          "at": 28
+        }
+      ]
+    },
+    {
+      "id": "bass",
+      "instrument": "bass",
+      "gain_db": -7,
+      "pan": 0,
+      "slot": "triangle",
+      "clips": [
+        {
+          "id": "bar_0",
+          "pattern": "bass_0",
+          "at": 0
+        },
+        {
+          "id": "bar_1",
+          "pattern": "bass_1",
+          "at": 4
+        },
+        {
+          "id": "bar_2",
+          "pattern": "bass_2",
+          "at": 8
+        },
+        {
+          "id": "bar_3",
+          "pattern": "bass_3",
+          "at": 12
+        },
+        {
+          "id": "bar_4",
+          "pattern": "bass_4",
+          "at": 16
+        },
+        {
+          "id": "bar_5",
+          "pattern": "bass_5",
+          "at": 20
+        },
+        {
+          "id": "bar_6",
+          "pattern": "bass_6",
+          "at": 24
+        },
+        {
+          "id": "bar_7",
+          "pattern": "bass_7",
+          "at": 28
+        }
+      ]
+    },
+    {
+      "id": "percussion",
+      "instrument": "hat",
+      "gain_db": -14,
+      "pan": 0.08,
+      "slot": "noise",
+      "clips": [
+        {
+          "id": "rhythm",
+          "pattern": "drums",
+          "at": 0,
+          "repeat": 8
+        }
+      ]
+    }
+  ],
+  "sections": [
+    {
+      "id": "A",
+      "at": 0,
+      "length": 16
+    },
+    {
+      "id": "B",
+      "at": 16,
+      "length": 16
+    }
+  ]
+}
