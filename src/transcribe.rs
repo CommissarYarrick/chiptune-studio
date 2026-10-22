@@ -321,6 +321,112 @@ fn validate_quantize(quantize: f64) -> Result<()> {
     }
 }
 
+/// Resynthesize a monophonic take without converting its melody to MIDI notes.
+/// Input is mono 16 kHz; output is stereo 32 kHz, with the complete take retained.
+/// Voiceless sounds are gated, rather than replayed or turned into pitched noise.
+pub fn voice_to_chip(samples: &[f32], analysis: &Value) -> Result<Vec<[f32; 2]>> {
+    let curve = analysis["pitch_curve"]
+        .as_array()
+        .ok_or_else(|| anyhow!("Pitch analysis missing"))?;
+    if curve.is_empty() || samples.is_empty() || samples.iter().any(|v| !v.is_finite()) {
+        return Err(anyhow!("Invalid take for continuous resynthesis"));
+    }
+    let times: Vec<f64> = curve
+        .iter()
+        .map(|f| f["seconds"].as_f64().unwrap_or(0.))
+        .collect();
+    let pitches: Vec<Option<f64>> = curve
+        .iter()
+        .map(|f| {
+            let hz = f["hz"].as_f64().unwrap_or(0.);
+            ((65. ..=2000.).contains(&hz) && f["confidence"].as_f64().unwrap_or(0.) >= 0.65)
+                .then(|| hz.log2())
+        })
+        .collect();
+    let mut smooth = pitches.clone();
+    for i in 0..pitches.len() {
+        if pitches[i].is_some() {
+            let mut window: Vec<f64> = pitches[i.saturating_sub(1)..(i + 2).min(pitches.len())]
+                .iter()
+                .flatten()
+                .copied()
+                .collect();
+            smooth[i] = Some(median(&mut window));
+        }
+    }
+    // Bridge only short dropouts between similar pitches, not real rests or jumps.
+    let mut i = 0;
+    while i < smooth.len() {
+        if smooth[i].is_some() {
+            i += 1;
+            continue;
+        }
+        let start = i;
+        while i < smooth.len() && smooth[i].is_none() {
+            i += 1;
+        }
+        if start > 0
+            && i < smooth.len()
+            && i - start <= 3
+            && let (Some(a), Some(b)) = (smooth[start - 1], smooth[i])
+            && (a - b).abs() < 2. / 12.
+        {
+            for (k, pitch) in smooth.iter_mut().enumerate().take(i).skip(start) {
+                *pitch = Some(a + (b - a) * (k - start + 1) as f64 / (i - start + 1) as f64);
+            }
+        }
+    }
+    let mut env = Vec::with_capacity(samples.len());
+    let mut power = 0.;
+    for &sample in samples {
+        let value = (sample as f64).powi(2);
+        let seconds: f64 = if value > power { 0.004 } else { 0.012 };
+        power += (1. - (-1. / (16000. * seconds)).exp()) * (value - power);
+        env.push(power.sqrt());
+    }
+    let reference = env.iter().copied().fold(0., f64::max).max(1e-8);
+    let mut output = Vec::with_capacity(samples.len() * 2);
+    let mut frame = 0;
+    let mut phase = 0.;
+    let mut voice = 0.;
+    let mut frequency = 220.;
+    let rate = 32000.;
+    for n in 0..samples.len() * 2 {
+        let time = n as f64 / rate;
+        while frame + 1 < times.len() && times[frame + 1] <= time {
+            frame += 1;
+        }
+        let next = (frame + 1).min(smooth.len() - 1);
+        let t = if times[next] > times[frame] {
+            ((time - times[frame]) / (times[next] - times[frame])).clamp(0., 1.)
+        } else {
+            0.
+        };
+        let (pitch, target) = match (smooth[frame], smooth[next]) {
+            (Some(a), Some(b)) => (Some(a + (b - a) * t), 1.),
+            (Some(a), None) => (Some(a), 1. - t),
+            (None, Some(b)) => (Some(b), t),
+            _ => (None, 0.),
+        };
+        if let Some(p) = pitch {
+            frequency = 2f64.powf(p);
+        }
+        voice += (1. - (-1. / (rate * 0.003)).exp()) * (target - voice);
+        let step = frequency / rate;
+        let pulse = (if phase < 0.5 { 1. } else { -1. }) + crate::dsp::poly_blep(phase, step)
+            - crate::dsp::poly_blep((phase + 0.5) % 1., step);
+        phase = (phase + step) % 1.;
+        let index = n / 2;
+        let amplitude = (env[index] / reference).clamp(0., 1.);
+        let edge = (n as f64 / (rate * 0.004))
+            .min((samples.len() * 2 - 1 - n) as f64 / (rate * 0.004))
+            .clamp(0., 1.);
+        let value = (pulse * amplitude * voice * edge * 0.32) as f32;
+        output.push([value, value]);
+    }
+    Ok(output)
+}
+
 fn estimate_key(notes: &[Value]) -> Result<(usize, &'static str, f64)> {
     let mut chroma = [0.0; 12];
     for n in notes {
@@ -360,10 +466,22 @@ fn estimate_key(notes: &[Value]) -> Result<(usize, &'static str, f64)> {
 }
 pub fn accompany(input: &Value) -> Result<(Value, Value)> {
     let mut result = input.clone();
-    let notes = result["patterns"]["melody"]["notes"]
+    let backing_ids = ["bass", "arpeggio", "harmony", "percussion"];
+    let mut tracks: Vec<Value> = result["tracks"]
         .as_array()
-        .ok_or_else(|| anyhow!("melody pattern missing"))?
-        .clone();
+        .ok_or_else(|| anyhow!("tracks missing"))?
+        .iter()
+        .filter(|t| !backing_ids.contains(&t["id"].as_str().unwrap_or("")))
+        .cloned()
+        .collect();
+    if !result["patterns"]["melody"].is_object() {
+        return Err(anyhow!("melody pattern missing"));
+    }
+    result["tracks"] = json!(tracks);
+    let notes: Vec<Value> = score::compile(&result)?
+        .iter()
+        .map(|e| json!({"at":e.at,"duration":e.duration,"note":e.note}))
+        .collect();
     let (tonic, mode, confidence) = estimate_key(&notes)?;
     let intervals = if mode == "minor" {
         vec![(0, 3), (5, 3), (7, 4), (8, 4)]
@@ -472,13 +590,23 @@ pub fn accompany(input: &Value) -> Result<(Value, Value)> {
             .unwrap()
             .push(json!({"id":format!("bar_{}",bar),"pattern":cname,"at":bar*4}));
     }
-    let lead = result["tracks"]
-        .as_array()
-        .and_then(|x| x.first())
-        .cloned()
-        .ok_or_else(|| anyhow!("lead track missing"))?;
-    result["tracks"] = json!([lead, harmony, bass, drums]);
-    let report = json!({"tonic_pc":tonic,"mode":mode,"key_margin":confidence,"progression":progression,"note":"Starter accompaniment; lead melody unchanged, key and chords editable."});
+    // Recorded layers own their voices. Backing must never replace a theme.
+    // Prefer a bass and rhythm before adding arpeggios when chip slots are scarce.
+    let mut added = Vec::new();
+    for backing in [bass, drums, harmony] {
+        let available = if profile == "chip4" {
+            !tracks.iter().any(|t| t["slot"] == backing["slot"])
+        } else {
+            let voices = if backing["id"] == "harmony" { 3 } else { 1 };
+            tracks.len() + voices <= 8
+        };
+        if available {
+            added.push(backing["id"].clone());
+            tracks.push(backing);
+        }
+    }
+    result["tracks"] = json!(tracks);
+    let report = json!({"tonic_pc":tonic,"mode":mode,"key_margin":confidence,"progression":progression,"added_tracks":added,"note":"Starter accompaniment; recorded melody layers preserved. Backing uses available profile voices only."});
     score::validate(&result)?;
     Ok((result, report))
 }
@@ -552,6 +680,12 @@ pub fn import_take(
     meta["harmony"] = harmony.unwrap_or(Value::Null);
     meta["score"] = json!(out.to_string_lossy());
     let metadata_path = out.with_extension("transcription.json");
+    let faithful_path = parent.join("faithful.wav");
+    let continuous = voice_to_chip(&samples, &transcription)?;
+    engine::write_wave(&faithful_path, &continuous, 1., 32000)?;
+    meta["faithful_preview"] = json!(faithful_path.to_string_lossy());
+    meta["faithful_preview_mode"] =
+        json!("Continuous pitch and recorded envelope; no grid, harmony, or voice samples.");
     engine::write_json(&metadata_path, &meta)?;
     engine::write_json(&out, &data)?;
     let mut result = engine::inspect(&out)?;

@@ -67,6 +67,16 @@ The other examples, `examples/chip4.json` and `examples/console8.json`, demonstr
 3. Choose a profile and transcribe. **Original** timing (the default) preserves the recorded rhythm; optional grids snap notes to the BPM. Start without accompaniment to compare the melody.
 4. Review the detected pitches and durations, save a revision, and render.
 
+The studio offers two separate results:
+
+- **Voice to chip:** follows continuous detected pitch and the recording's loudness envelope. It keeps the full take's duration, including rests, without snapping to notes or a tempo grid. This preview is melody-only.
+- **Editable notes mix:** converts the take to semitone notes you can edit and arrange. **Add accompaniment** also works on an already open imported project and renders a new revision immediately.
+
+To build a composition from several recordings, open the first take, select **Add as a new layer to the open project**, choose its zero-based start bar, then record and transcribe the next theme. Each take remains a separate track. User-recorded parts take priority over automatic backing voices. CHIP 4 has three melodic channels plus noise; CONSOLE 8 supports eight voices.
+
+Both modes depend on monophonic pitch detection: speech, breath noise, multiple simultaneous voices, and octave ambiguity can still need correction. Keep the original-recording player available for comparison. These are local operations; recordings are not uploaded to a service.
+
+
 The original take is preserved. Local YIN pitch detection recognizes a **single melodic line**, not chords or full recordings. Recorded takes are limited to 60 seconds. An optional deterministic accompaniment provides a starting point, with the original melody unchanged. Review uncertain notes against the original take.
 
 ## CLI and score format

@@ -14,6 +14,9 @@ function markDirty() {
 }
 function busy(value, message) {
   state.busy = value;
+  $("#arrangeInput").disabled = value;
+  $("#layerInput").disabled = value || !state.path;
+  $("#layerAtBar").disabled = value || !state.path || !$("#layerInput").checked;
   document.querySelectorAll("button").forEach(button => { if (button.dataset.busyLock === "true") button.disabled = value; });
   if (message) setStatus(message, value ? "working" : "ready");
 }
@@ -180,6 +183,9 @@ function drawPianoRoll() {
   });
   if (!pitchValues.length) { ctx.fillStyle = "#91a0b5"; ctx.font = "12px system-ui"; ctx.fillText(notes.length ? "Invalid pitch" : "No notes in the selected pattern", 16, height / 2); }
 }
+function hasAccompaniment(score) {
+  return (score?.tracks || []).some(track => ["bass", "arpeggio", "harmony", "percussion"].includes(track.id));
+}
 function updateRevision(inspection) {
   state.path = inspection.project || inspection.path;
   state.score = inspection;
@@ -188,15 +194,53 @@ function updateRevision(inspection) {
   const originalUrl = inspection.original_url || (inspection.result?.transcription && state.takeUrl);
   $("#originalPlayer").hidden = !originalUrl;
   if (originalUrl) { original.src = originalUrl; original.load(); }
+  const faithfulUrl = inspection.faithful_url;
+  $("#faithfulPlayer").hidden = !faithfulUrl;
+  if (faithfulUrl) { $("#faithfulAudio").src = faithfulUrl; $("#faithfulAudio").load(); }
+  $("#mixAudio").pause();
+  $("#mixAudio").hidden = true;
+  $("#downloadOgg").hidden = true;
+  $("#mixName").textContent = "Render this revision to hear the editable notes";
   if (inspection.score) {
     $("#titleInput").value = inspection.score.title || title();
     $("#bpmInput").value = inspection.score.bpm ?? 120;
     state.originalBpm = inspection.score.bpm ?? 120;
     state.profile = inspection.score.profile || state.profile;
     document.querySelectorAll("[data-profile]").forEach(button => button.classList.toggle("selected", button.dataset.profile === state.profile));
+    $("#arrangeInput").checked = hasAccompaniment(inspection.score);
+    $("#layerInput").disabled = state.busy;
+    $("#layerAtBar").disabled = state.busy || !$("#layerInput").checked;
     renderScore();
   }
 }
+$("#layerInput").addEventListener("change", () => {
+  $("#layerAtBar").disabled = !$("#layerInput").checked || state.busy;
+});
+$("#arrangeInput").addEventListener("change", async event => {
+  const enabled = event.target.checked;
+  if (state.busy) { event.target.checked = hasAccompaniment(state.score?.score); return; }
+  if (!state.path || !state.score?.score?.patterns?.melody) {
+    setStatus(`Accompaniment ${enabled ? "enabled" : "disabled"} for the next imported take.`, "ready");
+    return;
+  }
+  const previous = hasAccompaniment(state.score.score);
+  busy(true, enabled ? "Arranging the melody…" : "Removing accompaniment…");
+  let saved = false;
+  try {
+    const edited = structuredClone(state.score.score);
+    edited.title = title();
+    edited.bpm = Number($("#bpmInput").value);
+    const result = await jsonPost("/api/accompany", { path: state.path,
+      expected_sha256: state.score.score_sha256, enabled, score: edited });
+    updateRevision(result); saved = true;
+    await refreshProjects(result.project);
+    await renderCurrentMix();
+    setStatus(enabled ? "Accompaniment added · editable notes mix ready" : "Melody only · editable notes mix ready", "success");
+  } catch (error) {
+    if (!saved) $("#arrangeInput").checked = previous;
+    setStatus(`Could not ${saved ? "render the saved arrangement" : "update accompaniment"}: ${error.message}`, "error");
+  } finally { busy(false); }
+});
 $("#titleInput").addEventListener("input", () => { if (state.score) markDirty(); });
 $("#bpmInput").addEventListener("change", event => {
   const bpm = Number(event.target.value);
@@ -242,10 +286,15 @@ $("#wavFile").addEventListener("change", async event => {
 });
 $("#transcribeButton").addEventListener("click", async () => {
   if (!state.take || state.busy) return;
-  busy(true, "Transcribing take");
+  const layering = $("#layerInput").checked && state.path;
+  if (layering && state.dirty) { setStatus("Save your edits before adding a recorded layer.", "ready"); return; }
+  const layerAtBar = Number($("#layerAtBar").value);
+  if (layering && (!Number.isFinite(layerAtBar) || layerAtBar < 0)) { setStatus("Start bar must be zero or greater.", "error"); return; }
+  busy(true, layering ? "Transcribing a new melody layer…" : "Transcribing take");
   $("#transcribeButton").disabled = true;
   try {
-    const result = await jsonPost("/api/transcribe", { wav_base64: await fileToBase64(state.take), bpm: Number($("#bpmInput").value), quantize: state.quantize, profile: state.profile, title: title(), arrange: $("#arrangeInput").checked });
+    const result = await jsonPost("/api/transcribe", { wav_base64: await fileToBase64(state.take), bpm: Number($("#bpmInput").value), quantize: state.quantize, profile: state.profile, title: title(), arrange: !layering && $("#arrangeInput").checked,
+      ...(layering ? { layer_on: state.path, layer_at_bar: layerAtBar, expected_sha256: state.score.score_sha256 } : {}) });
     updateRevision(result);
     await refreshProjects(result.project);
     const transcription = result.result?.transcription;
@@ -306,16 +355,21 @@ $("#saveButton").addEventListener("click", async () => {
   } catch (error) { setStatus(`Could not save revision: ${error.message}`, "error"); }
   finally { busy(false); }
 });
+async function renderCurrentMix() {
+  const result = await jsonPost("/api/render", { path: state.path });
+  $("#downloadOgg").hidden = !result.ogg_url;
+  if (result.ogg_url) $("#downloadOgg").href = result.ogg_url;
+  $("#mixAudio").src = result.audio_url;
+  $("#mixAudio").hidden = false;
+  $("#mixAudio").load();
+  $("#mixName").textContent = `${result.title || state.score.score.title} · ${Number(result.seconds).toFixed(1)} s`;
+}
 $("#renderButton").addEventListener("click", async () => {
   if (!state.path || state.busy) return;
+  if (state.dirty) { setStatus("Save the edited notes before rendering the mix.", "ready"); return; }
   busy(true, "Rendering mix…");
-  try {
-    const result = await jsonPost("/api/render", { path: state.path });
-    $("#downloadOgg").hidden = !result.ogg_url; if (result.ogg_url) $("#downloadOgg").href = result.ogg_url;
-    $("#mixAudio").src = result.audio_url; $("#mixAudio").hidden = false; $("#mixAudio").load();
-    $("#mixName").textContent = `${result.title || state.score.score.title} · ${Number(result.seconds).toFixed(1)} s`;
-    setStatus("Mix ready to play", "success");
-  } catch (error) { setStatus(`Could not render mix: ${error.message}`, "error"); }
+  try { await renderCurrentMix(); setStatus("Editable notes mix ready to play", "success"); }
+  catch (error) { setStatus(`Could not render mix: ${error.message}`, "error"); }
   finally { busy(false); }
 });
 $("#tapButton").addEventListener("click", () => {

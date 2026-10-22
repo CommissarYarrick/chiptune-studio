@@ -13,7 +13,7 @@ fn arr_nums(v: Option<&Value>, fallback: &[f64]) -> Vec<f64> {
         .filter(|a| !a.is_empty())
         .unwrap_or_else(|| fallback.to_vec())
 }
-fn poly_blep(p: f64, step: f64) -> f64 {
+pub(crate) fn poly_blep(p: f64, step: f64) -> f64 {
     if p < step {
         let x = p / step;
         2.0 * x - x * x - 1.0

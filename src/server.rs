@@ -90,6 +90,91 @@ fn project_base(root: &Path, p: &Path) -> PathBuf {
     }
     p.parent().unwrap_or(root).to_path_buf()
 }
+fn take_metadata(root: &Path, score_path: &Path) -> PathBuf {
+    let adjacent = score_path.with_extension("transcription.json");
+    if adjacent.is_file() {
+        adjacent
+    } else {
+        project_base(root, score_path).join("score.transcription.json")
+    }
+}
+fn copy_take_metadata(root: &Path, source: &Path, destination: &Path) -> Result<()> {
+    let metadata = take_metadata(root, source);
+    if metadata.is_file() {
+        fs::copy(metadata, destination.with_extension("transcription.json"))?;
+    }
+    Ok(())
+}
+fn attach_take_audio(root: &Path, score_path: &Path, inspection: &mut Value) -> Result<()> {
+    let metadata = take_metadata(root, score_path);
+    if !metadata.is_file() {
+        return Ok(());
+    }
+    let meta: Value = serde_json::from_slice(&fs::read(metadata)?)?;
+    for (source, key) in [
+        (meta["audio"]["saved_take"].as_str(), "original_url"),
+        (meta["faithful_preview"].as_str(), "faithful_url"),
+    ] {
+        if let Some(path) = source
+            && let Ok(relative) = rel(root, Path::new(path))
+        {
+            inspection[key] = json!(format!(
+                "/audio?path={}",
+                form_urlencoded::byte_serialize(relative.as_bytes()).collect::<String>()
+            ));
+        }
+    }
+    inspection["transcription"] = meta;
+    Ok(())
+}
+
+// Only imported melody projects have automatically managed accompaniment.
+// Refuse custom arrangements rather than silently replacing their tracks.
+fn melody_only(input: &Value) -> Result<Value> {
+    let tracks = input["tracks"]
+        .as_array()
+        .ok_or_else(|| anyhow!("Tracks missing"))?;
+    if input["patterns"]["melody"].is_null()
+        || tracks.first().is_none_or(|t| t["id"] != "lead")
+        || tracks.iter().any(|t| {
+            let id = t["id"].as_str().unwrap_or("");
+            !(matches!(id, "lead" | "bass" | "arpeggio" | "harmony" | "percussion")
+                || id.starts_with("layer_"))
+        })
+        || tracks.iter().filter(|t| t["id"] == "lead").count() != 1
+    {
+        return Err(anyhow!(
+            "Automatic accompaniment is only available for imported melodies without custom tracks"
+        ));
+    }
+    let mut result = input.clone();
+    let retained: Vec<Value> = tracks
+        .iter()
+        .filter(|t| {
+            t["id"] == "lead" || t["id"].as_str().is_some_and(|id| id.starts_with("layer_"))
+        })
+        .cloned()
+        .collect();
+    let used: std::collections::HashSet<String> = retained
+        .iter()
+        .flat_map(|t| t["clips"].as_array().into_iter().flatten())
+        .filter_map(|c| c["pattern"].as_str().map(str::to_owned))
+        .collect();
+    result["tracks"] = json!(retained);
+    result["patterns"]
+        .as_object_mut()
+        .ok_or_else(|| anyhow!("Patterns missing"))?
+        .retain(|id, _| {
+            let numbered = |prefix: &str| {
+                id.strip_prefix(prefix)
+                    .is_some_and(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()))
+            };
+            used.contains(id) || !(id == "rhythm" || numbered("bass_") || numbered("harmony_"))
+        });
+    crate::score::validate(&result)?;
+    Ok(result)
+}
+
 fn recent_projects(root: &Path) -> Value {
     fn walk(root: &Path, dir: &Path, out: &mut Vec<(u128, PathBuf)>) {
         let Ok(entries) = fs::read_dir(dir) else {
@@ -178,21 +263,7 @@ pub fn studio(root: &Path, port: u16) -> Result<()> {
                         let p = inside(&root, &query_path(&url))?;
                         let mut v = crate::engine::inspect(&p)?;
                         v["path"] = json!(rel(&root, &p)?);
-                        let metadata = project_base(&root, &p).join("score.transcription.json");
-                        if metadata.is_file() {
-                            let meta: Value = serde_json::from_slice(&fs::read(metadata)?)?;
-                            if let Some(take) = meta["audio"]["saved_take"].as_str() {
-                                // rel canonicalizes and checks the configured root before exposing audio.
-                                if let Ok(relative) = rel(&root, Path::new(take)) {
-                                    v["original_url"] = json!(format!(
-                                        "/audio?path={}",
-                                        form_urlencoded::byte_serialize(relative.as_bytes())
-                                            .collect::<String>()
-                                    ));
-                                }
-                            }
-                            v["transcription"] = meta;
-                        }
+                        attach_take_audio(&root, &p, &mut v)?;
                         json_response(200, v)
                     }
                     "/audio" => {
@@ -302,11 +373,107 @@ pub fn studio(root: &Path, port: u16) -> Result<()> {
                         data["arrange"].as_bool().unwrap_or(false),
                         data["title"].as_str().unwrap_or("Take"),
                     )?;
-                    let mut v = crate::engine::inspect(&score)?;
-                    let r = rel(&root, &score)?;
+                    let destination = if let Some(layer_on) = data["layer_on"].as_str() {
+                        let base_path = inside(&root, layer_on)?;
+                        let current = crate::engine::inspect(&base_path)?;
+                        let expected = data["expected_sha256"].as_str().unwrap_or("");
+                        if current["score_sha256"].as_str() != Some(expected) {
+                            return Err(anyhow!(
+                                "Score changed; inspect again before adding a layer"
+                            ));
+                        }
+                        let had_accompaniment =
+                            current["score"]["tracks"].as_array().is_some_and(|tracks| {
+                                tracks.iter().any(|track| {
+                                    matches!(
+                                        track["id"].as_str(),
+                                        Some("bass" | "arpeggio" | "harmony" | "percussion")
+                                    )
+                                })
+                            });
+                        let melodic_base = if had_accompaniment {
+                            melody_only(&current["score"])?
+                        } else {
+                            current["score"].clone()
+                        };
+                        let merged = crate::layers::add_melody_layer(
+                            &melodic_base,
+                            &result["score"],
+                            data["layer_at_bar"].as_f64().unwrap_or(0.),
+                        )?;
+                        let merged = if had_accompaniment {
+                            crate::transcribe::accompany(&merged)?.0
+                        } else {
+                            merged
+                        };
+                        let mut operations = Vec::new();
+                        for (key, value) in merged.as_object().unwrap() {
+                            if current["score"].get(key) != Some(value) {
+                                operations.push(json!({"op":if current["score"].get(key).is_some(){"replace"}else{"add"},
+                                    "path":format!("/{}", key.replace('~', "~0").replace('/', "~1")), "value":value}));
+                            }
+                        }
+                        let revision = project_base(&root, &base_path)
+                            .join("revisions")
+                            .join(format!("{}.json", uuid::Uuid::new_v4().simple()));
+                        let revision =
+                            inside(&root, &revision.strip_prefix(&root)?.to_string_lossy())?;
+                        crate::engine::patch(&base_path, &json!(operations), &revision, expected)?;
+                        copy_take_metadata(&root, &score, &revision)?;
+                        revision
+                    } else {
+                        score.clone()
+                    };
+                    let mut v = crate::engine::inspect(&destination)?;
+                    let r = rel(&root, &destination)?;
                     v["path"] = json!(r.clone());
                     v["project"] = json!(r);
                     v["result"] = result;
+                    attach_take_audio(&root, &destination, &mut v)?;
+                    json_response(200, v)
+                }
+                "/api/accompany" => {
+                    let p = inside(&root, data["path"].as_str().unwrap_or(""))?;
+                    let current = crate::engine::inspect(&p)?;
+                    let expected = data["expected_sha256"].as_str().unwrap_or("");
+                    if current["score_sha256"].as_str() != Some(expected) {
+                        return Err(anyhow!("Score changed; inspect again before patching"));
+                    }
+                    if !take_metadata(&root, &p).is_file() {
+                        return Err(anyhow!(
+                            "Automatic accompaniment requires an imported melody project"
+                        ));
+                    }
+                    let input = data.get("score").unwrap_or(&current["score"]);
+                    crate::score::validate(input)?;
+                    let base = melody_only(input)?;
+                    let enabled = data["enabled"]
+                        .as_bool()
+                        .ok_or_else(|| anyhow!("enabled must be a boolean"))?;
+                    let (updated, report) = if enabled {
+                        crate::transcribe::accompany(&base)?
+                    } else {
+                        (base, Value::Null)
+                    };
+                    // Carry the editor's unsaved changes into the same new revision.
+                    let mut operations = Vec::new();
+                    for (key, value) in updated.as_object().unwrap() {
+                        if current["score"].get(key) != Some(value) {
+                            operations.push(json!({"op":if current["score"].get(key).is_some(){"replace"}else{"add"},
+                                "path":format!("/{}", key.replace('~', "~0").replace('/', "~1")), "value":value}));
+                        }
+                    }
+                    let out = project_base(&root, &p)
+                        .join("revisions")
+                        .join(format!("{}.json", uuid::Uuid::new_v4().simple()));
+                    let out = inside(&root, &out.strip_prefix(&root)?.to_string_lossy())?;
+                    let mut v = crate::engine::patch(&p, &json!(operations), &out, expected)?;
+                    let relative = rel(&root, &out)?;
+                    v["path"] = json!(relative.clone());
+                    v["project"] = json!(relative);
+                    v["accompaniment"] = report;
+                    copy_take_metadata(&root, &p, &out)?;
+                    attach_take_audio(&root, &out, &mut v)?;
                     json_response(200, v)
                 }
                 "/api/patch" => {
@@ -330,6 +497,8 @@ pub fn studio(root: &Path, port: u16) -> Result<()> {
                     let r = rel(&root, &out)?;
                     v["path"] = json!(r.clone());
                     v["project"] = json!(r);
+                    copy_take_metadata(&root, &p, &out)?;
+                    attach_take_audio(&root, &out, &mut v)?;
                     json_response(200, v)
                 }
                 "/api/render" => {
