@@ -307,6 +307,7 @@ $("#renderButton").addEventListener("click", async () => {
   busy(true, "Rendering mix…");
   try {
     const result = await jsonPost("/api/render", { path: state.path });
+    $("#downloadOgg").hidden = !result.ogg_url; if (result.ogg_url) $("#downloadOgg").href = result.ogg_url;
     $("#mixAudio").src = result.audio_url; $("#mixAudio").hidden = false; $("#mixAudio").load();
     $("#mixName").textContent = `${result.title || state.score.score.title} · ${Number(result.seconds).toFixed(1)} s`;
     setStatus("Mix ready to play", "success");

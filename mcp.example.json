@@ -1,9 +1,9 @@
 {
   "mcpServers": {
     "chiptune-studio": {
-      "command": "/path/to/chiptune-studio/.venv/bin/python",
+      "command": "/path/to/chiptune-studio/target/release/chip",
       "args": [
-        "/path/to/chiptune-studio/mcp_server.py",
+        "mcp",
         "--root",
         "/path/to/chiptune-studio/data"
       ]

@@ -1,7 +1,9 @@
 @echo off
-set "PYTHON=%~dp0.venv\Scripts\python.exe"
-if not exist "%PYTHON%" (
-    echo Chiptune Python environment not found. Create it with: python -m venv .venv 1>&2
+setlocal
+if not defined CHIPTUNE_BIN set "CHIPTUNE_BIN=%~dp0target\release\chip.exe"
+if not exist "%CHIPTUNE_BIN%" (
+    echo Native Chiptune CLI not found: "%CHIPTUNE_BIN%" 1>&2
     exit /b 2
 )
-"%PYTHON%" "%~dp0chip.py" %*
+"%CHIPTUNE_BIN%" %*
+exit /b %errorlevel%

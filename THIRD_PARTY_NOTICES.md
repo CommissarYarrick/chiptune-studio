@@ -1,11 +1,11 @@
-# Third-party dependencies
+# Third-party notices
 
-Chiptune Studio's original source code and bundled example score data use the MIT License in `LICENSE`.
+Original Chiptune Studio code and bundled example compositions are MIT; see `LICENSE`.
 
-Dependencies are installed separately; their source code is not vendored in this repository. Their own license terms continue to apply:
+The Rust executable incorporates third-party dependencies under their own permissive terms. Their exact versions, checksums, upstream license expressions, and selected licenses are recorded in [licenses/inventory.json](licenses/inventory.json). Complete upstream license and attribution texts are preserved in [licenses/THIRD_PARTY.txt](licenses/THIRD_PARTY.txt). Include that notice file when redistributing binaries.
 
-- **NumPy:** BSD-3-Clause, with additional notices for bundled components depending on the installed distribution. See https://numpy.org/doc/stable/license.html and the installed package's license files.
-- **Model Context Protocol Python SDK:** MIT. See https://github.com/modelcontextprotocol/python-sdk/blob/main/LICENSE .
-- Other transitive packages retain the licenses distributed with those packages. `requirements.lock.txt` records the original Windows environment; it is not a replacement for their license files.
+Ogg Vorbis encoding uses `vorbis_rs` and its bundled native libogg/libvorbis/aoTuV libraries under BSD-style terms. Their copyright, conditions, disclaimer, and non-endorsement provisions are preserved in the notice bundle.
 
-No game assets, third-party sample packs, soundfonts, model weights, or private microphone recordings are included.
+See [LICENSE_POLICY.md](LICENSE_POLICY.md) for review rules and permissive license selections. Upstream notices may mention unused licensing alternatives; the inventory identifies the license selected for this distribution.
+
+No third-party samples, soundfonts, model weights, game assets, or private recordings are included.

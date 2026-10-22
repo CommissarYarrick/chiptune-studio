@@ -5,11 +5,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$python = if ($env:CHIPTUNE_PYTHON) { $env:CHIPTUNE_PYTHON } else { Join-Path $PSScriptRoot '.venv\Scripts\python.exe' }
+$chip = if ($env:CHIPTUNE_BIN) { $env:CHIPTUNE_BIN } else { Join-Path $PSScriptRoot 'target\release\chip.exe' }
 if (-not $Root) {
     $Root = if ($env:CHIPTUNE_DATA_DIR) { $env:CHIPTUNE_DATA_DIR } else { Join-Path $PSScriptRoot 'data' }
 }
-$chipScript = Join-Path $PSScriptRoot 'chip.py'
 $url = "http://127.0.0.1:$Port"
 
 function Get-StudioInfo {
@@ -42,11 +41,8 @@ if ($null -ne $listener) {
     throw "Port $Port is occupied by another application. Choose another port with -Port."
 }
 
-if (-not (Test-Path -LiteralPath $python -PathType Leaf)) {
-    throw "Python environment not found: $python"
-}
-if (-not (Test-Path -LiteralPath $chipScript -PathType Leaf)) {
-    throw "Chiptune CLI not found: $chipScript"
+if (-not (Test-Path -LiteralPath $chip -PathType Leaf)) {
+    throw "Native Chiptune CLI not found: $chip"
 }
 
 $logRoot = Join-Path $Root 'logs'
@@ -54,7 +50,6 @@ New-Item -ItemType Directory -Path $logRoot -Force | Out-Null
 $stdoutLog = Join-Path $logRoot "studio_$Port.stdout.log"
 $stderrLog = Join-Path $logRoot "studio_$Port.stderr.log"
 $arguments = @(
-    ('"{0}"' -f $chipScript),
     'studio',
     '--root',
     ('"{0}"' -f $Root),
@@ -62,7 +57,7 @@ $arguments = @(
     [string]$Port
 )
 
-$process = Start-Process -FilePath $python -ArgumentList $arguments -WindowStyle Hidden `
+$process = Start-Process -FilePath $chip -ArgumentList $arguments -WindowStyle Hidden `
     -RedirectStandardOutput $stdoutLog -RedirectStandardError $stderrLog -PassThru
 try {
     $process.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::BelowNormal
