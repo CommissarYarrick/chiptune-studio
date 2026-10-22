@@ -181,3 +181,17 @@ footer span { margin: 0 5px; color: var(--amber); }
 }
 
 [hidden] { display: none !important; }
+
+/* The default workflow needs only recording, creation, and one finished player. */
+details > summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 14px 0; }
+.advanced-settings, .note-editor, .comparison-options, .technical-details { border-top: 1px solid var(--line); }
+.advanced-settings { margin-top: 16px; }
+.note-editor { order: 2; }
+.comparison-options { order: 3; }
+.technical-details { order: 4; }
+.editor-panel > .mix-player { margin-top: 8px; margin-bottom: 18px; border-radius: 8px; flex-wrap: wrap; }
+.editor-panel > .mix-player audio { max-width: 100%; width: 100%; flex-basis: 100%; height: 42px; margin-top: 6px; }
+.comparison-options .mix-player { margin: 0; padding: 12px 0; background: transparent; border-radius: 0; flex-wrap: wrap; }
+.comparison-options .mix-player audio { width: 100%; max-width: 100%; }
+.technical-details pre { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); font-size: 11px; }
+@media (max-width: 930px) { .capture-panel { display: block; } }

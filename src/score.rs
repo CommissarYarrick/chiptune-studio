@@ -615,7 +615,11 @@ pub fn validate(score: &Value) -> Result<Value> {
         v.push((e.at + e.duration, -1));
     }
     fn peak(changes: &mut [(f64, i32)]) -> i32 {
-        changes.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
+        // A computed end (start + duration) and an identical next onset can
+        // differ by floating-point roundoff. Order endpoints on a nanobeat
+        // grid, with note-offs before note-ons. Real overlaps still count.
+        let instant = |beat: f64| (beat * 1_000_000_000.).round() as i64;
+        changes.sort_by(|a, b| instant(a.0).cmp(&instant(b.0)).then(a.1.cmp(&b.1)));
         let (mut active, mut max) = (0, 0);
         for (_, d) in changes {
             active += *d;
@@ -766,6 +770,23 @@ mod tests {
                 .unwrap_err()
                 .to_string()
                 .contains("overlapping")
+        );
+    }
+
+    #[test]
+    fn touching_notes_do_not_exceed_chip_gate_budget() {
+        let mut s = basic();
+        s["profile"] = json!("chip4");
+        s["tracks"][0]["slot"] = json!("pulse1");
+        s["patterns"]["p"]["notes"] = json!([
+            {"id":"a", "at":0.1, "duration":0.2, "note":60},
+            {"id":"b", "at":0.3, "duration":0.2, "note":62}
+        ]);
+        assert!(validate(&s).is_ok());
+        s["patterns"]["p"]["notes"][1]["at"] = json!(0.299);
+        assert!(
+            validate(&s).is_err(),
+            "A real millibeat overlap must still fail"
         );
     }
     #[test]

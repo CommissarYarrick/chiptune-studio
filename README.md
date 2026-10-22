@@ -62,17 +62,14 @@ The other examples, `examples/chip4.json` and `examples/console8.json`, demonstr
 
 ## Hum or whistle a melody
 
-1. Click **Record idea** and allow microphone access.
-2. Record one clear melodic line, then stop, or import a WAV.
-3. Choose a profile and transcribe. **Original** timing (the default) preserves the recorded rhythm; optional grids snap notes to the BPM. Start without accompaniment to compare the melody.
-4. Review the detected pitches and durations, save a revision, and render.
+1. Click **Record** and allow microphone access.
+2. Hum or whistle one melodic line, then click the same button to **Stop**. You can also import a WAV.
+3. Click **Create music**. The studio recognizes the melody, adds accompaniment, renders the song, and starts playback. If the browser blocks autoplay, press Play.
+4. Listen or download the Ogg file. Your original recording is preserved.
 
-The studio offers two separate results:
+No setup is required: the default uses CHIP 4, original timing, and accompaniment. Optional **Advanced settings** expose tempo, profile, grid timing, accompaniment, and layer position. **Edit notes** opens the note editor; **Compare with recording** contains the original take and the melody-only continuous-pitch preview.
 
-- **Voice to chip:** follows continuous detected pitch and the recording's loudness envelope. It keeps the full take's duration, including rests, without snapping to notes or a tempo grid. This preview is melody-only.
-- **Editable notes mix:** converts the take to semitone notes you can edit and arrange. **Add accompaniment** also works on an already open imported project and renders a new revision immediately.
-
-To build a composition from several recordings, open the first take, select **Add as a new layer to the open project**, choose its zero-based start bar, then record and transcribe the next theme. Each take remains a separate track. User-recorded parts take priority over automatic backing voices. CHIP 4 has three melodic channels plus noise; CONSOLE 8 supports eight voices.
+To add another theme, open the current song, enable **Add this recording to the current song**, record the next part, and click **Create music**. It becomes a separate track, preserving the existing song. User-recorded parts take priority over automatic backing voices. CHIP 4 has three melodic channels plus noise; CONSOLE 8 supports eight voices.
 
 Both modes depend on monophonic pitch detection: speech, breath noise, multiple simultaneous voices, and octave ambiguity can still need correction. Keep the original-recording player available for comparison. These are local operations; recordings are not uploaded to a service.
 

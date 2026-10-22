@@ -1,7 +1,7 @@
 "use strict";
 
 const $ = selector => document.querySelector(selector);
-const state = { profile: "chip4", quantize: 0, path: null, score: null, take: null, takeUrl: null, tapTimes: [], busy: false, dirty: false, originalBpm: null };
+const state = { profile: "chip4", quantize: 0, path: null, score: null, take: null, takeUrl: null, tapTimes: [], busy: false, dirty: false, originalBpm: null, recording: false, lockedButtons: new Map() };
 const recorder = new TakeRecorder(level => drawWave(level), seconds => showTime(seconds), mode => recordingState(mode), blob => setTake(blob));
 
 function setStatus(message, kind = "ready") {
@@ -14,11 +14,31 @@ function markDirty() {
 }
 function busy(value, message) {
   state.busy = value;
+  if (value) {
+    state.lockedButtons.clear();
+    document.querySelectorAll("button").forEach(button => { state.lockedButtons.set(button, button.disabled); button.disabled = true; });
+  } else {
+    state.lockedButtons.forEach((disabled, button) => { button.disabled = disabled; });
+    state.lockedButtons.clear();
+    $("#recordButton").disabled = state.recording;
+    $("#transcribeButton").disabled = !state.take || state.recording;
+    $("#renderButton").disabled = !state.path;
+    $("#saveButton").disabled = !state.path;
+    $("#openProjectButton").disabled = !$("#recentProjects").value;
+    $("#addNoteButton").disabled = !Object.keys(state.score?.score?.patterns || {}).length;
+    syncPatternTools();
+  }
   $("#arrangeInput").disabled = value;
   $("#layerInput").disabled = value || !state.path;
   $("#layerAtBar").disabled = value || !state.path || !$("#layerInput").checked;
-  document.querySelectorAll("button").forEach(button => { if (button.dataset.busyLock === "true") button.disabled = value; });
+  $("#wavFile").disabled = value || state.recording;
+  $("#recentProjects").disabled = value || state.recording;
   if (message) setStatus(message, value ? "working" : "ready");
+}
+function showError(message, error) {
+  $("#errorDetails").hidden = false;
+  $("#errorText").textContent = error.message || String(error);
+  setStatus(message, "error");
 }
 async function request(url, options = {}) {
   const response = await fetch(url, options);
@@ -50,17 +70,23 @@ function drawWave(level) {
 }
 function recordingState(mode) {
   const active = mode === "recording" || mode === "starting";
-  $("#recordButton").disabled = active;
+  state.recording = active;
+  $("#recordButton").disabled = state.busy || mode === "starting";
+  $("#recordButton").innerHTML = active ? "<span></span> Stop" : "<span></span> Record";
   $("#recordButton").classList.toggle("is-recording", active);
   $("#stopButton").disabled = mode !== "recording";
-  $("#recordLabel").textContent = mode === "recording" ? "Recording" : mode === "starting" ? "Accessing microphone…" : "Take ready";
+  $("#transcribeButton").disabled = active || state.busy || !state.take;
+  $("#wavFile").disabled = active || state.busy;
+  $("#recordLabel").textContent = mode === "recording" ? "Recording" : mode === "starting" ? "Accessing microphone…" : "Recording ready";
 }
 function setTake(blob) {
   if (state.takeUrl) URL.revokeObjectURL(state.takeUrl);
   state.take = blob; state.takeUrl = URL.createObjectURL(blob);
   $("#playTakeButton").disabled = false; $("#transcribeButton").disabled = false;
   $("#recordLabel").textContent = "Take ready";
-  $("#transcribeButton").textContent = "Transcribe take →";
+  $("#transcribeButton").textContent = "Create music →";
+  if (!$("#layerInput").checked) $("#arrangeInput").checked = true;
+  setStatus("Recording ready · press Create music", "ready");
 }
 function currentPatternId() { return $("#patternSelect").value; }
 function selectedPattern() { return state.score?.score?.patterns?.[currentPatternId()]; }
@@ -200,14 +226,14 @@ function updateRevision(inspection) {
   $("#mixAudio").pause();
   $("#mixAudio").hidden = true;
   $("#downloadOgg").hidden = true;
-  $("#mixName").textContent = "Render this revision to hear the editable notes";
+  $("#mixName").textContent = "Press Update music to listen";
   if (inspection.score) {
     $("#titleInput").value = inspection.score.title || title();
     $("#bpmInput").value = inspection.score.bpm ?? 120;
     state.originalBpm = inspection.score.bpm ?? 120;
     state.profile = inspection.score.profile || state.profile;
     document.querySelectorAll("[data-profile]").forEach(button => button.classList.toggle("selected", button.dataset.profile === state.profile));
-    $("#arrangeInput").checked = hasAccompaniment(inspection.score);
+    $("#arrangeInput").checked = inspection.score.patterns?.melody ? hasAccompaniment(inspection.score) : true;
     $("#layerInput").disabled = state.busy;
     $("#layerAtBar").disabled = state.busy || !$("#layerInput").checked;
     renderScore();
@@ -262,14 +288,18 @@ $("#openProjectButton").addEventListener("click", async () => {
   finally { busy(false); }
 });
 
+async function stopRecording() {
+  try { const blob = await recorder.stop(); if (blob) setTake(blob); }
+  catch (error) { showError("Could not finish the recording. Try again.", error); }
+}
 $("#recordButton").addEventListener("click", async () => {
-  try { await recorder.start(); setStatus("Recording", "working"); }
-  catch (error) { setStatus(error.message, "error"); recordingState("ready"); }
+  if (state.busy) return;
+  if (state.recording) { await stopRecording(); return; }
+  $("#mixAudio").pause(); $("#originalAudio").pause(); $("#faithfulAudio").pause();
+  try { await recorder.start(); setStatus("Recording · press Stop when finished", "working"); }
+  catch (error) { showError("Could not access the microphone. Check browser permission.", error); recordingState("ready"); }
 });
-$("#stopButton").addEventListener("click", async () => {
-  try { const blob = await recorder.stop(); if (blob) setTake(blob); setStatus("Take ready to transcribe", "ready"); }
-  catch (error) { setStatus(error.message, "error"); }
-});
+$("#stopButton").addEventListener("click", stopRecording);
 $("#playTakeButton").addEventListener("click", () => { if (state.takeUrl) new Audio(state.takeUrl).play(); });
 $("#wavFile").addEventListener("change", async event => {
   const file = event.target.files?.[0]; if (!file) return;
@@ -285,25 +315,29 @@ $("#wavFile").addEventListener("change", async event => {
   event.target.value = "";
 });
 $("#transcribeButton").addEventListener("click", async () => {
-  if (!state.take || state.busy) return;
+  if (!state.take || state.busy || state.recording) return;
   const layering = $("#layerInput").checked && state.path;
-  if (layering && state.dirty) { setStatus("Save your edits before adding a recorded layer.", "ready"); return; }
+  if (state.dirty) { $("#noteEditor").open = true; setStatus("Save your edited notes first. Your recording is still available.", "ready"); return; }
   const layerAtBar = Number($("#layerAtBar").value);
   if (layering && (!Number.isFinite(layerAtBar) || layerAtBar < 0)) { setStatus("Start bar must be zero or greater.", "error"); return; }
-  busy(true, layering ? "Transcribing a new melody layer…" : "Transcribing take");
+  busy(true, layering ? "Adding your recording to the song…" : "Creating music…");
+  $("#errorDetails").hidden = true;
+  let created = false;
   $("#transcribeButton").disabled = true;
   try {
     const result = await jsonPost("/api/transcribe", { wav_base64: await fileToBase64(state.take), bpm: Number($("#bpmInput").value), quantize: state.quantize, profile: state.profile, title: title(), arrange: !layering && $("#arrangeInput").checked,
       ...(layering ? { layer_on: state.path, layer_at_bar: layerAtBar, expected_sha256: state.score.score_sha256 } : {}) });
     updateRevision(result);
-    await refreshProjects(result.project);
-    const transcription = result.result?.transcription;
-    const noteCount = transcription?.notes?.length ?? 0;
-    const confidence = Number(transcription?.median_confidence);
-    const confidenceText = Number.isFinite(confidence) ? ` · median confidence ${Math.round(confidence * 100)}%` : "";
-    setStatus(`Take transcribed · ${noteCount} notes recognized${confidenceText}`, "success");
-  } catch (error) { setStatus(`Transcription failed: ${error.message}`, "error"); }
+    created = true;
+    await refreshProjects(result.project).catch(() => {});
+    await renderCurrentMix();
+    setStatus("Music ready", "success");
+    try { await $("#mixAudio").play(); } catch { setStatus("Music ready · press Play to listen", "success"); }
+  } catch (error) {
+    showError(created ? "Your song was saved, but playback could not be prepared. Press Update music to retry." : "Could not create music from this take. Your recording is preserved; please try again.", error);
+  }
   finally { busy(false); $("#transcribeButton").disabled = !state.take; }
+
 });
 async function createProject(template = "empty") {
   if (state.busy) return;
@@ -390,6 +424,7 @@ document.querySelectorAll("[data-profile]").forEach(button => button.addEventLis
 document.querySelectorAll("[data-quantize]").forEach(button => button.addEventListener("click", () => {
   state.quantize = Number(button.dataset.quantize); document.querySelectorAll("[data-quantize]").forEach(item => item.classList.toggle("selected", item === button));
 }));
+$("#noteEditor").addEventListener("toggle", drawPianoRoll);
 window.addEventListener("resize", drawPianoRoll);
 setStatus("Ready to start");
 refreshProjects().catch(error => setStatus(`Recent projects unavailable: ${error.message}`, "error"));
